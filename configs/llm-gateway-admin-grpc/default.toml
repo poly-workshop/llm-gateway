@@ -1,0 +1,41 @@
+[grpc]
+listen = ":50051"
+
+[auth.admin]
+# Single admin token, passed via gRPC metadata/header: x-service-token
+service_token = "changeme-admin-token"
+
+[auth.jwt_signing]
+# JWT issuer/audience for signing
+issuer = "llm-gateway-admin"
+audience = "llm-gateway"
+# Default token lifetime (e.g. "15m")
+default_ttl = "15m"
+# Ed25519 private key (PKCS8 PEM).
+# Recommended: mount via secret (e.g. K8s Secret volume) and point to its file path.
+private_key_file = "jwt_signing_private_key.pem"
+
+# Dynamic config: usage-callback allowlist shared store backend
+# (must match the data-plane backend to take effect).
+[auth.usage_callback]
+cache_ttl = "30s"
+
+[storage]
+backend = "gorm"
+
+[storage.gorm]
+driver = "sqlite"
+host = "127.0.0.1"
+port = 5432
+username = "postgres"
+password = ""
+dbname = "data/llm_gateway.db"
+sslmode = "disable"
+
+[storage.mongodb]
+uri = "mongodb://127.0.0.1:27017"
+database = "llm_gateway"
+collection = "llm_gateway_usage_callback_allowlists"
+
+# NOTE: providers + model catalog are managed via Admin API (stored in the same shared DB).
+

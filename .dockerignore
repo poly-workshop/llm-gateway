@@ -1,0 +1,17 @@
+.git
+.github
+.vscode
+.cursor
+terminals
+
+**/*.md
+**/*_test.go
+deployments/
+
+tmp/
+dist/
+bin/
+
+Dockerfile
+.dockerignore
+

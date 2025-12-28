@@ -1,0 +1,49 @@
+[http]
+listen = ":8080"
+
+# Browser-friendly CORS for direct calls to /v1/* (includes preflight OPTIONS).
+# Notes:
+# - For cookie auth, set allow_credentials=true and configure allow_origins to your site(s).
+# - If allow_credentials=true, wildcard origins will be reflected (very permissive).
+[http.cors]
+enabled = false
+allow_origins = ["http://localhost:3000"]
+allow_credentials = true
+allow_methods = ["GET", "POST", "OPTIONS"]
+allow_headers = ["Authorization", "Content-Type", "X-Request-Id", "X-Usage-Callback"]
+expose_headers = ["X-Request-Id"]
+max_age = "10m"
+
+# Data-plane auth: JWT Bearer token (Authorization: Bearer <JWT>)
+[auth.jwt]
+# If true, JWT is required. Recommended: true in production.
+required = false
+# JWT validation settings: iss/aud + Ed25519 public key (PEM)
+issuer = "llm-gateway-admin"
+audience = "llm-gateway"
+public_key_file = "jwt_verify_public_key.pem"
+
+# Dynamic config: usage-callback allowlist shared store backend.
+# NOTE: "memory" backend is intentionally NOT supported because data-plane and admin
+# must share this allowlist.
+[auth.usage_callback]
+cache_ttl = "30s"
+
+[storage]
+backend = "gorm"
+
+[storage.gorm]
+driver = "sqlite"
+host = "127.0.0.1"
+port = 5432
+username = "postgres"
+password = ""
+dbname = "data/llm_gateway.db"
+sslmode = "disable"
+
+[storage.mongodb]
+uri = "mongodb://127.0.0.1:27017"
+database = "llm_gateway"
+collection = "llm_gateway_usage_callback_allowlists"
+
+# NOTE: providers + model catalog are managed via Admin API (not static config files).

@@ -1,0 +1,169 @@
+syntax = "proto3";
+
+package llmgateway.admin.v1;
+
+option go_package = "github.com/poly-workshop/llm-gateway/gen/go/llmgateway/admin/v1;adminv1";
+
+service LLMGatewayAdminService {
+  // Issue a JWT for a given subject (service name).
+  rpc IssueToken(IssueTokenRequest) returns (IssueTokenResponse);
+
+  // LLM config (control-plane):
+  // - Provider configs are stored centrally (includes upstream API keys).
+  // - Model catalog is stored centrally (data-plane uses it for routing + ListModels).
+  rpc UpsertProviderConfig(UpsertProviderConfigRequest) returns (UpsertProviderConfigResponse);
+  rpc DeleteProviderConfig(DeleteProviderConfigRequest) returns (DeleteProviderConfigResponse);
+  rpc ListProviderConfigs(ListProviderConfigsRequest) returns (ListProviderConfigsResponse);
+  rpc UpsertModel(UpsertModelRequest) returns (UpsertModelResponse);
+  rpc DeleteModel(DeleteModelRequest) returns (DeleteModelResponse);
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
+
+  // Configure a trusted usage callback URL allowlist for a subject.
+  rpc SetUsageCallbackAllowlist(SetUsageCallbackAllowlistRequest) returns (SetUsageCallbackAllowlistResponse);
+
+  // Get current trusted usage callback allowlist for a subject.
+  rpc GetUsageCallbackAllowlist(GetUsageCallbackAllowlistRequest) returns (GetUsageCallbackAllowlistResponse);
+}
+
+// ProviderType enumerates supported upstream provider implementations.
+// This is intentionally a closed set so clients can discover capabilities via generated enums.
+enum ProviderType {
+  PROVIDER_TYPE_UNSPECIFIED = 0;
+  PROVIDER_TYPE_DASHSCOPE = 1;
+  PROVIDER_TYPE_OPENROUTER = 2;
+}
+
+// ModelCapability enumerates supported upstream capabilities.
+// This is intentionally a closed set so clients can discover capabilities via generated enums.
+enum ModelCapability {
+  MODEL_CAPABILITY_UNSPECIFIED = 0;
+
+  // Text input/output.
+  MODEL_CAPABILITY_TEXT = 1;
+  // Image input (vision). (Cline-style: supportsImages)
+  MODEL_CAPABILITY_IMAGES = 2;
+  // Audio input/output.
+  MODEL_CAPABILITY_AUDIO = 3;
+  // Video input.
+  MODEL_CAPABILITY_VIDEO = 4;
+
+  // Tool/function calling. (Cline-style: supportsTools)
+  MODEL_CAPABILITY_TOOLS = 10;
+  // Prompt cache / KV cache. (Cline-style: supportsPromptCache)
+  MODEL_CAPABILITY_PROMPT_CACHE = 11;
+  // Streaming responses. (Cline-style: supportsStreaming)
+  MODEL_CAPABILITY_STREAMING = 12;
+  // Explicit reasoning support flag. (Cline-style: supportsReasoning)
+  MODEL_CAPABILITY_REASONING = 13;
+}
+
+message IssueTokenRequest {
+  // Subject/service name to embed into JWT `sub`.
+  string subject = 1;
+  // Optional; if 0 the server default is used.
+  int64 ttl_seconds = 2;
+
+  // Optional model allowlist to embed into the JWT.
+  // If empty, the token can access all models.
+  repeated string allowed_model_ids = 3;
+}
+
+message IssueTokenResponse {
+  string access_token = 1;
+  int64 expires_at_unix = 2;
+}
+
+message ProviderConfig {
+  // Provider identifier, e.g. "dashscope", "openrouter".
+  ProviderType provider = 1;
+  string base_url = 2;
+  // Upstream API key/secret (stored server-side; never returned by ListProviderConfigs).
+  string api_key = 3;
+  // Timeout for upstream requests (seconds). If 0, server default is used.
+  int64 timeout_seconds = 4;
+}
+
+message ProviderConfigView {
+  ProviderType provider = 1;
+  string base_url = 2;
+  int64 timeout_seconds = 3;
+  bool api_key_present = 4;
+}
+
+message UpsertProviderConfigRequest {
+  ProviderConfig config = 1;
+}
+
+message UpsertProviderConfigResponse {}
+
+message DeleteProviderConfigRequest {
+  ProviderType provider = 1;
+}
+
+message DeleteProviderConfigResponse {}
+
+message ListProviderConfigsRequest {}
+
+message ListProviderConfigsResponse {
+  repeated ProviderConfigView configs = 1;
+}
+
+message ModelSpec {
+  // Routed model id, e.g. "dashscope/qwen-turbo", "openrouter/openai/gpt-4o".
+  string id = 1;
+  reserved 2; // name (deprecated; derived from upstream_model / id)
+  // Provider identifier used to pick the upstream implementation.
+  ProviderType provider = 3;
+  repeated ModelCapability capabilities = 4;
+  // Optional override for upstream model name.
+  string upstream_model = 5;
+}
+
+// ModelConfig is used to configure a routed model.
+// The server will compute the routed model ID as "<provider>/<upstream_model>".
+message ModelConfig {
+  ProviderType provider = 1;
+  repeated ModelCapability capabilities = 2;
+  // Upstream model name as expected by provider (may contain slashes, e.g. "openai/gpt-4o").
+  string upstream_model = 3;
+}
+
+message UpsertModelRequest {
+  ModelConfig model = 1;
+}
+
+message UpsertModelResponse {
+  // Computed routed model ID: "<provider>/<upstream_model>".
+  string id = 1;
+}
+
+message DeleteModelRequest {
+  string id = 1;
+}
+
+message DeleteModelResponse {}
+
+message ListModelsRequest {}
+
+message ListModelsResponse {
+  repeated ModelSpec models = 1;
+}
+
+message SetUsageCallbackAllowlistRequest {
+  string subject = 1;
+  // Trusted callback URL allowlist for this subject.
+  // If empty, allowlist is cleared (no callbacks will be sent).
+  repeated string urls = 2;
+}
+
+message SetUsageCallbackAllowlistResponse {
+  repeated string urls = 1;
+}
+
+message GetUsageCallbackAllowlistRequest {
+  string subject = 1;
+}
+
+message GetUsageCallbackAllowlistResponse {
+  repeated string urls = 1;
+}
