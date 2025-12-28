@@ -1,0 +1,7 @@
+# Development configs
+development.toml
+development.yaml
+development.yml
+
+# Debug binaries
+__debug_bin*

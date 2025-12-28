@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package llmgateway.v1;
+
+option go_package = "github.com/poly-workshop/llm-gateway/gen/go/llmgateway/v1;llmgatewayv1";
+
+import "google/api/field_behavior.proto";
+
+message Model {
+  // Stable identifier used in requests, e.g. "openai/gpt-4.1-mini" or "anthropic/claude-3-5-sonnet".
+  string id = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // Human-friendly name (optional).
+  string name = 2;
+
+  // Provider identifier (optional), e.g. "openai".
+  string provider = 3;
+
+  // Arbitrary capability tags (optional), e.g. "chat", "vision", "tools".
+  repeated string capabilities = 4;
+}
+
+message ListModelsRequest {}
+
+message ListModelsResponse {
+  repeated Model data = 1;
+}
+
+message GetModelRequest {
+  string id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetModelResponse {
+  Model model = 1;
+}
+

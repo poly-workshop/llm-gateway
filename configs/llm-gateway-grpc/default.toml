@@ -1,0 +1,62 @@
+[grpc]
+listen = ":50051"
+
+[health]
+listen = ":8081"
+
+[auth]
+# 临时密钥有效期。外部应用可通过 ServiceToken 换取临时密钥并使用签名访问。
+temp_ttl = "15m"
+
+# 配置一个或多个 ServiceToken。若不配置，鉴权将处于“关闭”状态（保持向后兼容）。
+[[auth.service_tokens]]
+name = "demo-service"
+token = ""
+
+[llm.providers.dashscope]
+base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+api_key = ""
+timeout = "20s"
+
+[llm.providers.openrouter]
+base_url = "https://openrouter.ai/api/v1"
+api_key = ""
+timeout = "60s"
+
+[[llm.models]]
+id = "dashscope/qwen-turbo"
+name = "Qwen Turbo"
+provider = "dashscope"
+capabilities = ["chat"]
+
+[[llm.models]]
+id = "dashscope/qwen-vl-max"
+name = "Qwen VL Max"
+provider = "dashscope"
+capabilities = ["chat", "vision"]
+
+[[llm.models]]
+id = "dashscope/qwen-vl-plus"
+name = "Qwen VL Plus"
+provider = "dashscope"
+capabilities = ["chat", "vision"]
+
+[[llm.models]]
+id = "dashscope/text-embedding-v3"
+name = "Text Embedding v3"
+provider = "dashscope"
+capabilities = ["embeddings"]
+
+[[llm.models]]
+id = "openrouter/openai/gpt-4o"
+name = "GPT-4o (OpenRouter)"
+provider = "openrouter"
+upstream_model = "openai/gpt-4o"
+capabilities = ["chat"]
+
+[[llm.models]]
+id = "openrouter/anthropic/claude-3.5-sonnet"
+name = "Claude 3.5 Sonnet (OpenRouter)"
+provider = "openrouter"
+upstream_model = "anthropic/claude-3.5-sonnet"
+capabilities = ["chat"]

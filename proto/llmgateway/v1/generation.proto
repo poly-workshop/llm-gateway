@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package llmgateway.v1;
+
+import "google/api/field_behavior.proto";
+import "llmgateway/v1/chat.proto";
+
+option go_package = "github.com/poly-workshop/llm-gateway/gen/go/llmgateway/v1;llmgatewayv1";
+
+// A generation record that tracks usage for a completed request.
+message Generation {
+  // Unique identifier (same as the id returned in chat/embeddings response).
+  string id = 1;
+  // The model used for this generation.
+  string model = 2;
+  // Unix timestamp when this generation was created.
+  int64 created = 3;
+  // Token usage statistics.
+  TokenUsage usage = 4;
+}
+
+message GetGenerationRequest {
+  string id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetGenerationResponse {
+  Generation generation = 1;
+}

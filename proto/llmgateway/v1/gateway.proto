@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+package llmgateway.v1;
+
+import "google/api/annotations.proto";
+import "llmgateway/v1/chat.proto";
+import "llmgateway/v1/embeddings.proto";
+import "llmgateway/v1/generation.proto";
+import "llmgateway/v1/models.proto";
+
+option go_package = "github.com/poly-workshop/llm-gateway/gen/go/llmgateway/v1;llmgatewayv1";
+
+service LLMGatewayService {
+  // Auth
+  // Use ServiceToken to issue temporary credentials for request signing.
+  rpc IssueTemporaryCredentials(IssueTemporaryCredentialsRequest) returns (IssueTemporaryCredentialsResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/temporary-credentials"
+      body: "*"
+    };
+  }
+
+  // Configure a per-service usage callback URL (ServiceToken only).
+  rpc SetUsageCallback(SetUsageCallbackRequest) returns (SetUsageCallbackResponse) {
+    option (google.api.http) = {
+      put: "/v1/auth/usage-callback"
+      body: "*"
+    };
+  }
+
+  // Get current service's trusted usage callback allowlist (ServiceToken only).
+  rpc GetUsageCallback(GetUsageCallbackRequest) returns (GetUsageCallbackResponse) {
+    option (google.api.http) = {get: "/v1/auth/usage-callback"};
+  }
+
+  // Models
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse) {
+    option (google.api.http) = {get: "/v1/models"};
+  }
+
+  rpc GetModel(GetModelRequest) returns (GetModelResponse) {
+    option (google.api.http) = {get: "/v1/models/{id}"};
+  }
+
+  // Chat Completions (OpenAI-style)
+  rpc CreateChatCompletion(CreateChatCompletionRequest) returns (CreateChatCompletionResponse) {
+    option (google.api.http) = {
+      post: "/v1/chat/completions"
+      body: "*"
+    };
+  }
+
+  // Server-streaming chat completion. Mapped to a distinct HTTP endpoint to avoid conflicts.
+  rpc CreateChatCompletionStream(CreateChatCompletionStreamRequest) returns (stream CreateChatCompletionStreamResponse) {
+    option (google.api.http) = {
+      post: "/v1/chat/completions:stream"
+      body: "*"
+    };
+  }
+
+  // Embeddings (OpenAI-style)
+  rpc CreateEmbeddings(CreateEmbeddingsRequest) returns (CreateEmbeddingsResponse) {
+    option (google.api.http) = {
+      post: "/v1/embeddings"
+      body: "*"
+    };
+  }
+
+  // Generation (query usage for a completed request)
+  rpc GetGeneration(GetGenerationRequest) returns (GetGenerationResponse) {
+    option (google.api.http) = {get: "/v1/generation/{id}"};
+  }
+}
+
+message IssueTemporaryCredentialsRequest {}
+
+message TemporaryCredentials {
+  string access_key_id = 1;
+  string access_key_secret = 2;
+  int64 expires_at_unix = 3;
+}
+
+message IssueTemporaryCredentialsResponse {
+  TemporaryCredentials credentials = 1;
+}
+
+message SetUsageCallbackRequest {
+  // Trusted callback URL allowlist for this service.
+  // If empty, allowlist is cleared (no callbacks will be sent).
+  repeated string urls = 1;
+}
+
+message SetUsageCallbackResponse {
+  repeated string urls = 1;
+}
+
+message GetUsageCallbackRequest {}
+
+message GetUsageCallbackResponse {
+  repeated string urls = 1;
+}

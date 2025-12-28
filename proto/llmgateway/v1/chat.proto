@@ -1,0 +1,98 @@
+syntax = "proto3";
+
+package llmgateway.v1;
+
+import "google/api/field_behavior.proto";
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/poly-workshop/llm-gateway/gen/go/llmgateway/v1;llmgatewayv1";
+
+// ImageURL represents an image URL with optional detail level for vision models.
+message ImageURL {
+  // The URL of the image. Can be a regular URL or a base64 data URL.
+  string url = 1 [(google.api.field_behavior) = REQUIRED];
+  // Optional detail level: "auto", "low", or "high". Defaults to "auto".
+  string detail = 2;
+}
+
+// ContentPart represents a part of a multimodal message content.
+message ContentPart {
+  // The type of content: "text" or "image_url".
+  string type = 1 [(google.api.field_behavior) = REQUIRED];
+  // Text content (when type = "text").
+  string text = 2;
+  // Image URL content (when type = "image_url").
+  ImageURL image_url = 3;
+}
+
+// One chat message (OpenAI-style).
+// Supports both simple text content and multimodal content (text + images).
+message ChatMessage {
+  // e.g. "system", "user", "assistant", "tool".
+  string role = 1 [(google.api.field_behavior) = REQUIRED];
+  // Content can be either a string (for text-only) or an array of ContentPart (for vision).
+  // In JSON: "content": "hello" or "content": [{"type": "text", "text": "hello"}, {"type": "image_url", ...}]
+  google.protobuf.Value content = 2;
+  string name = 3;
+}
+
+message TokenUsage {
+  uint32 prompt_tokens = 1;
+  uint32 completion_tokens = 2;
+  uint32 total_tokens = 3;
+}
+
+message ChatCompletionChoice {
+  uint32 index = 1;
+  ChatMessage message = 2;
+  // e.g. "stop", "length", "tool_calls".
+  string finish_reason = 3;
+}
+
+message CreateChatCompletionRequest {
+  // Routed model id, e.g. "openai/gpt-4.1-mini".
+  string model = 1 [(google.api.field_behavior) = REQUIRED];
+  repeated ChatMessage messages = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // Optional tuning knobs (minimal subset).
+  double temperature = 3;
+  uint32 max_tokens = 4;
+
+  // Optional user identifier for analytics/rate-limit.
+  string user = 5;
+}
+
+message CreateChatCompletionResponse {
+  string id = 1;
+  // unix seconds
+  int64 created = 2;
+  string model = 3;
+
+  repeated ChatCompletionChoice choices = 4;
+  TokenUsage usage = 5;
+}
+
+message CreateChatCompletionStreamRequest {
+  CreateChatCompletionRequest request = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+// Streaming chunk shape (minimal).
+message CreateChatCompletionStreamResponse {
+  string id = 1;
+  int64 created = 2;
+  string model = 3;
+
+  repeated CreateChatCompletionStreamChoice choices = 4;
+}
+
+message CreateChatCompletionStreamChoice {
+  uint32 index = 1;
+  ChatCompletionDelta delta = 2;
+  string finish_reason = 3;
+}
+
+message ChatCompletionDelta {
+  // In practice you may only stream content deltas; role may appear in the first chunk.
+  string role = 1;
+  string content = 2;
+}

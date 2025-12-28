@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package llmgateway.v1;
+
+option go_package = "github.com/poly-workshop/llm-gateway/gen/go/llmgateway/v1;llmgatewayv1";
+
+import "google/api/field_behavior.proto";
+
+message CreateEmbeddingsRequest {
+  string model = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // Minimal: accept a list of input strings.
+  repeated string input = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // Optional user identifier.
+  string user = 3;
+}
+
+message Embedding {
+  uint32 index = 1;
+  repeated float embedding = 2;
+}
+
+// Token usage for embeddings (input only, no completion tokens).
+message EmbeddingsUsage {
+  uint32 prompt_tokens = 1;
+  uint32 total_tokens = 2;
+}
+
+message CreateEmbeddingsResponse {
+  // Unique identifier for this embeddings request (used for GetGeneration).
+  string id = 1;
+  string model = 2;
+  repeated Embedding data = 3;
+  EmbeddingsUsage usage = 4;
+}
+
