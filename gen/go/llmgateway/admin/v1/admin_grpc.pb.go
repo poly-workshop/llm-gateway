@@ -19,15 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	LLMGatewayAdminService_IssueToken_FullMethodName                = "/llmgateway.admin.v1.LLMGatewayAdminService/IssueToken"
-	LLMGatewayAdminService_UpsertProviderConfig_FullMethodName      = "/llmgateway.admin.v1.LLMGatewayAdminService/UpsertProviderConfig"
-	LLMGatewayAdminService_DeleteProviderConfig_FullMethodName      = "/llmgateway.admin.v1.LLMGatewayAdminService/DeleteProviderConfig"
-	LLMGatewayAdminService_ListProviderConfigs_FullMethodName       = "/llmgateway.admin.v1.LLMGatewayAdminService/ListProviderConfigs"
-	LLMGatewayAdminService_UpsertModel_FullMethodName               = "/llmgateway.admin.v1.LLMGatewayAdminService/UpsertModel"
-	LLMGatewayAdminService_DeleteModel_FullMethodName               = "/llmgateway.admin.v1.LLMGatewayAdminService/DeleteModel"
-	LLMGatewayAdminService_ListModels_FullMethodName                = "/llmgateway.admin.v1.LLMGatewayAdminService/ListModels"
-	LLMGatewayAdminService_SetUsageCallbackAllowlist_FullMethodName = "/llmgateway.admin.v1.LLMGatewayAdminService/SetUsageCallbackAllowlist"
-	LLMGatewayAdminService_GetUsageCallbackAllowlist_FullMethodName = "/llmgateway.admin.v1.LLMGatewayAdminService/GetUsageCallbackAllowlist"
+	LLMGatewayAdminService_IssueToken_FullMethodName           = "/llmgateway.admin.v1.LLMGatewayAdminService/IssueToken"
+	LLMGatewayAdminService_UpsertProviderConfig_FullMethodName = "/llmgateway.admin.v1.LLMGatewayAdminService/UpsertProviderConfig"
+	LLMGatewayAdminService_DeleteProviderConfig_FullMethodName = "/llmgateway.admin.v1.LLMGatewayAdminService/DeleteProviderConfig"
+	LLMGatewayAdminService_ListProviderConfigs_FullMethodName  = "/llmgateway.admin.v1.LLMGatewayAdminService/ListProviderConfigs"
+	LLMGatewayAdminService_UpsertModel_FullMethodName          = "/llmgateway.admin.v1.LLMGatewayAdminService/UpsertModel"
+	LLMGatewayAdminService_DeleteModel_FullMethodName          = "/llmgateway.admin.v1.LLMGatewayAdminService/DeleteModel"
+	LLMGatewayAdminService_ListModels_FullMethodName           = "/llmgateway.admin.v1.LLMGatewayAdminService/ListModels"
 )
 
 // LLMGatewayAdminServiceClient is the client API for LLMGatewayAdminService service.
@@ -45,10 +43,6 @@ type LLMGatewayAdminServiceClient interface {
 	UpsertModel(ctx context.Context, in *UpsertModelRequest, opts ...grpc.CallOption) (*UpsertModelResponse, error)
 	DeleteModel(ctx context.Context, in *DeleteModelRequest, opts ...grpc.CallOption) (*DeleteModelResponse, error)
 	ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error)
-	// Configure a trusted usage callback URL allowlist for a subject.
-	SetUsageCallbackAllowlist(ctx context.Context, in *SetUsageCallbackAllowlistRequest, opts ...grpc.CallOption) (*SetUsageCallbackAllowlistResponse, error)
-	// Get current trusted usage callback allowlist for a subject.
-	GetUsageCallbackAllowlist(ctx context.Context, in *GetUsageCallbackAllowlistRequest, opts ...grpc.CallOption) (*GetUsageCallbackAllowlistResponse, error)
 }
 
 type lLMGatewayAdminServiceClient struct {
@@ -129,26 +123,6 @@ func (c *lLMGatewayAdminServiceClient) ListModels(ctx context.Context, in *ListM
 	return out, nil
 }
 
-func (c *lLMGatewayAdminServiceClient) SetUsageCallbackAllowlist(ctx context.Context, in *SetUsageCallbackAllowlistRequest, opts ...grpc.CallOption) (*SetUsageCallbackAllowlistResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SetUsageCallbackAllowlistResponse)
-	err := c.cc.Invoke(ctx, LLMGatewayAdminService_SetUsageCallbackAllowlist_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *lLMGatewayAdminServiceClient) GetUsageCallbackAllowlist(ctx context.Context, in *GetUsageCallbackAllowlistRequest, opts ...grpc.CallOption) (*GetUsageCallbackAllowlistResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetUsageCallbackAllowlistResponse)
-	err := c.cc.Invoke(ctx, LLMGatewayAdminService_GetUsageCallbackAllowlist_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // LLMGatewayAdminServiceServer is the server API for LLMGatewayAdminService service.
 // All implementations must embed UnimplementedLLMGatewayAdminServiceServer
 // for forward compatibility.
@@ -164,10 +138,6 @@ type LLMGatewayAdminServiceServer interface {
 	UpsertModel(context.Context, *UpsertModelRequest) (*UpsertModelResponse, error)
 	DeleteModel(context.Context, *DeleteModelRequest) (*DeleteModelResponse, error)
 	ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error)
-	// Configure a trusted usage callback URL allowlist for a subject.
-	SetUsageCallbackAllowlist(context.Context, *SetUsageCallbackAllowlistRequest) (*SetUsageCallbackAllowlistResponse, error)
-	// Get current trusted usage callback allowlist for a subject.
-	GetUsageCallbackAllowlist(context.Context, *GetUsageCallbackAllowlistRequest) (*GetUsageCallbackAllowlistResponse, error)
 	mustEmbedUnimplementedLLMGatewayAdminServiceServer()
 }
 
@@ -198,12 +168,6 @@ func (UnimplementedLLMGatewayAdminServiceServer) DeleteModel(context.Context, *D
 }
 func (UnimplementedLLMGatewayAdminServiceServer) ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListModels not implemented")
-}
-func (UnimplementedLLMGatewayAdminServiceServer) SetUsageCallbackAllowlist(context.Context, *SetUsageCallbackAllowlistRequest) (*SetUsageCallbackAllowlistResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetUsageCallbackAllowlist not implemented")
-}
-func (UnimplementedLLMGatewayAdminServiceServer) GetUsageCallbackAllowlist(context.Context, *GetUsageCallbackAllowlistRequest) (*GetUsageCallbackAllowlistResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetUsageCallbackAllowlist not implemented")
 }
 func (UnimplementedLLMGatewayAdminServiceServer) mustEmbedUnimplementedLLMGatewayAdminServiceServer() {
 }
@@ -353,42 +317,6 @@ func _LLMGatewayAdminService_ListModels_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
-func _LLMGatewayAdminService_SetUsageCallbackAllowlist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetUsageCallbackAllowlistRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(LLMGatewayAdminServiceServer).SetUsageCallbackAllowlist(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: LLMGatewayAdminService_SetUsageCallbackAllowlist_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LLMGatewayAdminServiceServer).SetUsageCallbackAllowlist(ctx, req.(*SetUsageCallbackAllowlistRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _LLMGatewayAdminService_GetUsageCallbackAllowlist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetUsageCallbackAllowlistRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(LLMGatewayAdminServiceServer).GetUsageCallbackAllowlist(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: LLMGatewayAdminService_GetUsageCallbackAllowlist_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LLMGatewayAdminServiceServer).GetUsageCallbackAllowlist(ctx, req.(*GetUsageCallbackAllowlistRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // LLMGatewayAdminService_ServiceDesc is the grpc.ServiceDesc for LLMGatewayAdminService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -423,14 +351,6 @@ var LLMGatewayAdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListModels",
 			Handler:    _LLMGatewayAdminService_ListModels_Handler,
-		},
-		{
-			MethodName: "SetUsageCallbackAllowlist",
-			Handler:    _LLMGatewayAdminService_SetUsageCallbackAllowlist_Handler,
-		},
-		{
-			MethodName: "GetUsageCallbackAllowlist",
-			Handler:    _LLMGatewayAdminService_GetUsageCallbackAllowlist_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
