@@ -87,16 +87,13 @@ We use `github.com/poly-workshop/go-webmods@v0.4.2`:
 - `app.InitWithConfigPath(cmdName, configPath)` for config + logging initialization
 - `grpcutils.BuildRequestIDInterceptor()` and `grpcutils.BuildLogInterceptor(...)` for gRPC unary interceptors
 
-## Dynamic config (DB-backed): Usage callback allowlist
+## Dynamic config (DB-backed): Storage backend
 
-LLM Gateway 本身无状态可横向扩容，但有一类配置是**运行时动态变更**的：usage-callback allowlist（按 subject 隔离）。
-
-为保证多实例一致性，我们支持把 allowlist 持久化到 DB（仍然用本地 viper 读取 DB 连接配置）：
+LLM Gateway 本身无状态可横向扩容。Dynamic configuration (e.g., LLM provider configs, model catalog) is stored in a shared backend.
 
 - `storage.backend = "gorm" | "mongodb"`
   - `gorm`: shared in a relational DB (Postgres/MySQL/SQLite)
   - `mongodb`: shared in MongoDB
-- `auth.usage_callback.cache_ttl`：每个 subject allowlist 的本地缓存 TTL（默认 `30s`）
 
 ### GORM backend
 
@@ -110,24 +107,13 @@ Config keys:
 - `storage.gorm.dbname`
 - `storage.gorm.sslmode` (postgres)
 
-Table:
-
-- `llm_gateway_usage_callback_allowlists`
-  - primary key: `subject`
-  - `urls`: JSON string (array of url strings)
-
 ### MongoDB backend
 
 Config keys:
 
 - `storage.mongodb.uri`
 - `storage.mongodb.database`
-- `storage.mongodb.collection` (default: `llm_gateway_usage_callback_allowlists`)
-
-Collection/document:
-
-- `_id`: subject
-- `urls`: array of strings
+- `storage.mongodb.collection` (default: `llm_gateway`)
 
 ## Codegen import path convention (conservative)
 

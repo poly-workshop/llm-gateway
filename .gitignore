@@ -6,6 +6,10 @@ development.yml
 # Debug binaries
 __debug_bin*
 
+# Compiled binaries
+llm-gateway-http
+llm-gateway-admin-grpc
+
 data/
 
 *.pem
