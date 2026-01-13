@@ -17,12 +17,6 @@ service LLMGatewayAdminService {
   rpc UpsertModel(UpsertModelRequest) returns (UpsertModelResponse);
   rpc DeleteModel(DeleteModelRequest) returns (DeleteModelResponse);
   rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
-
-  // Configure a trusted usage callback URL allowlist for a subject.
-  rpc SetUsageCallbackAllowlist(SetUsageCallbackAllowlistRequest) returns (SetUsageCallbackAllowlistResponse);
-
-  // Get current trusted usage callback allowlist for a subject.
-  rpc GetUsageCallbackAllowlist(GetUsageCallbackAllowlistRequest) returns (GetUsageCallbackAllowlistResponse);
 }
 
 // ProviderType enumerates supported upstream provider implementations.
@@ -147,23 +141,4 @@ message ListModelsRequest {}
 
 message ListModelsResponse {
   repeated ModelSpec models = 1;
-}
-
-message SetUsageCallbackAllowlistRequest {
-  string subject = 1;
-  // Trusted callback URL allowlist for this subject.
-  // If empty, allowlist is cleared (no callbacks will be sent).
-  repeated string urls = 2;
-}
-
-message SetUsageCallbackAllowlistResponse {
-  repeated string urls = 1;
-}
-
-message GetUsageCallbackAllowlistRequest {
-  string subject = 1;
-}
-
-message GetUsageCallbackAllowlistResponse {
-  repeated string urls = 1;
 }

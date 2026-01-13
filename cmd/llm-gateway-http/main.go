@@ -17,7 +17,6 @@ import (
 	"github.com/poly-workshop/llm-gateway/internal/infrastructure/llmprovider/dashscope"
 	"github.com/poly-workshop/llm-gateway/internal/infrastructure/llmprovider/openrouter"
 	"github.com/poly-workshop/llm-gateway/internal/infrastructure/server/httpgateway"
-	"github.com/poly-workshop/llm-gateway/internal/infrastructure/usagecallbackstore"
 )
 
 func main() {
@@ -40,40 +39,6 @@ func main() {
 	// For now, pass nil to skip generation record storage.
 	appSvc := llmgateway.NewService(nil, nil, nil)
 
-	var cbStore auth.UsageCallbackStore
-	switch cfg.Storage.Backend {
-	case "gorm":
-		cbStore, err = usagecallbackstore.NewGorm(usagecallbackstore.GormConfig{
-			Driver:   cfg.Storage.Gorm.Driver,
-			Host:     cfg.Storage.Gorm.Host,
-			Port:     cfg.Storage.Gorm.Port,
-			Username: cfg.Storage.Gorm.Username,
-			Password: cfg.Storage.Gorm.Password,
-			DbName:   cfg.Storage.Gorm.DbName,
-			SSLMode:  cfg.Storage.Gorm.SSLMode,
-		})
-	case "mongodb":
-		cbStore, err = usagecallbackstore.NewMongo(usagecallbackstore.MongoConfig{
-			URI:        cfg.Storage.MongoDB.URI,
-			Database:   cfg.Storage.MongoDB.Database,
-			Collection: cfg.Storage.MongoDB.Collection,
-		})
-	default:
-		err = fmt.Errorf("unsupported storage.backend=%q (supported: gorm, mongodb)", cfg.Storage.Backend)
-	}
-	if cbStore == nil && err == nil {
-		err = fmt.Errorf("storage.backend must be configured (memory backend is not supported)")
-	}
-	if err != nil {
-		slog.Error("init usage callback store failed", "error", err)
-		os.Exit(1)
-	}
-	defer func() {
-		if cbStore != nil {
-			_ = cbStore.Close(context.Background())
-		}
-	}()
-
 	var verifier *auth.JWTVerifier
 	if cfg.Auth.JWT.PublicKeyPEM != "" {
 		verifier, err = auth.NewJWTVerifier(cfg.Auth.JWT.Issuer, cfg.Auth.JWT.Audience, cfg.Auth.JWT.PublicKeyPEM)
@@ -84,7 +49,7 @@ func main() {
 	}
 	// If JWT is required but not configured, config.LoadHTTP already returns an error.
 
-	authMgr := auth.NewManager(cfg.Auth.JWT.Required, verifier, cbStore, cfg.Auth.UsageCallback.CacheTTL)
+	authMgr := auth.NewManager(cfg.Auth.JWT.Required, verifier)
 	defer func() { _ = authMgr.Close(context.Background()) }()
 
 	// LLM config store (providers + models) - managed via Admin API.
