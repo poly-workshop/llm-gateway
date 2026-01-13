@@ -16,10 +16,7 @@ type HTTPAppConfig struct {
 		CORS   CORSConfig `mapstructure:"cors"`
 	} `mapstructure:"http"`
 
-	// Storage config is shared by multiple modules (e.g. LLM config store, usage callback allowlists).
-	//
-	// New config key: [storage]
-	// Legacy compatibility: falls back to [auth.usage_callback] if [storage] is not set.
+	// Storage config is shared by multiple modules (e.g. LLM config store).
 	Storage StorageConfig `mapstructure:"storage"`
 
 	Auth struct {
@@ -30,13 +27,6 @@ type HTTPAppConfig struct {
 			PublicKeyFile string `mapstructure:"public_key_file"`
 			PublicKeyPEM  string `mapstructure:"-"`
 		} `mapstructure:"jwt"`
-
-		// UsageCallback is NOT a storage config; it only holds usage-callback-specific knobs.
-		//
-		// Legacy note: historically [auth.usage_callback] also carried shared storage settings.
-		// We still unmarshal those legacy fields into this struct, then copy them into cfg.Storage
-		// if [storage] is not configured.
-		UsageCallback LegacyUsageCallbackConfig `mapstructure:"usage_callback"`
 	} `mapstructure:"auth"`
 }
 
@@ -80,10 +70,6 @@ func LoadHTTP() (HTTPAppConfig, error) {
 	if cfg.HTTP.CORS.MaxAge == 0 {
 		cfg.HTTP.CORS.MaxAge = 10 * time.Minute
 	}
-	normalizeStorageConfig(&cfg.Storage, &cfg.Auth.UsageCallback)
-	if cfg.Auth.UsageCallback.CacheTTL == 0 {
-		cfg.Auth.UsageCallback.CacheTTL = 30 * time.Second
-	}
 
 	return cfg, nil
 }
@@ -93,10 +79,7 @@ type AdminGRPCAppConfig struct {
 		Listen string `mapstructure:"listen"`
 	} `mapstructure:"grpc"`
 
-	// Storage config is shared by multiple modules (e.g. LLM config store, usage callback allowlists).
-	//
-	// New config key: [storage]
-	// Legacy compatibility: falls back to [auth.usage_callback] if [storage] is not set.
+	// Storage config is shared by multiple modules (e.g. LLM config store).
 	Storage StorageConfig `mapstructure:"storage"`
 
 	Auth struct {
@@ -112,13 +95,6 @@ type AdminGRPCAppConfig struct {
 			PrivateKeyPEM  string        `mapstructure:"-"`
 			DefaultTTL     time.Duration `mapstructure:"default_ttl"`
 		} `mapstructure:"jwt_signing"`
-
-		// UsageCallback is NOT a storage config; it only holds usage-callback-specific knobs.
-		//
-		// Legacy note: historically [auth.usage_callback] also carried shared storage settings.
-		// We still unmarshal those legacy fields into this struct, then copy them into cfg.Storage
-		// if [storage] is not configured.
-		UsageCallback LegacyUsageCallbackConfig `mapstructure:"usage_callback"`
 	} `mapstructure:"auth"`
 }
 
@@ -145,12 +121,8 @@ func LoadAdminGRPC() (AdminGRPCAppConfig, error) {
 		return cfg, fmt.Errorf("read auth.jwt_signing.private_key_file: %w", err)
 	}
 	cfg.Auth.JWTSigning.PrivateKeyPEM = pemText
-	normalizeStorageConfig(&cfg.Storage, &cfg.Auth.UsageCallback)
 	if cfg.Auth.JWTSigning.DefaultTTL == 0 {
 		cfg.Auth.JWTSigning.DefaultTTL = 15 * time.Minute
-	}
-	if cfg.Auth.UsageCallback.CacheTTL == 0 {
-		cfg.Auth.UsageCallback.CacheTTL = 30 * time.Second
 	}
 	return cfg, nil
 }
@@ -194,42 +166,6 @@ type StorageConfig struct {
 		// Collection is optional; individual modules may override it.
 		Collection string `mapstructure:"collection"`
 	} `mapstructure:"mongodb"`
-}
-
-// LegacyUsageCallbackConfig represents the historical [auth.usage_callback] schema.
-// It included both usage-callback-specific settings and shared storage backend settings.
-type LegacyUsageCallbackConfig struct {
-	Backend  string        `mapstructure:"backend"`
-	CacheTTL time.Duration `mapstructure:"cache_ttl"`
-
-	Gorm struct {
-		Driver   string `mapstructure:"driver"`
-		Host     string `mapstructure:"host"`
-		Port     int    `mapstructure:"port"`
-		Username string `mapstructure:"username"`
-		Password string `mapstructure:"password"`
-		DbName   string `mapstructure:"dbname"`
-		SSLMode  string `mapstructure:"sslmode"`
-	} `mapstructure:"gorm"`
-
-	MongoDB struct {
-		URI        string `mapstructure:"uri"`
-		Database   string `mapstructure:"database"`
-		Collection string `mapstructure:"collection"`
-	} `mapstructure:"mongodb"`
-}
-
-func normalizeStorageConfig(storage *StorageConfig, legacy *LegacyUsageCallbackConfig) {
-	if storage == nil || legacy == nil {
-		return
-	}
-	if storage.Backend != "" {
-		return
-	}
-	// Backward compat: if [storage] is missing, reuse legacy [auth.usage_callback] backend settings.
-	storage.Backend = legacy.Backend
-	storage.Gorm = legacy.Gorm
-	storage.MongoDB = legacy.MongoDB
 }
 
 func unmarshalViper(v *viper.Viper, out any) error {

@@ -15,7 +15,6 @@ import (
 	"github.com/poly-workshop/llm-gateway/internal/infrastructure/llmconfigstore"
 	"github.com/poly-workshop/llm-gateway/internal/infrastructure/server/adminserver"
 	"github.com/poly-workshop/llm-gateway/internal/infrastructure/transport/grpcadapter"
-	"github.com/poly-workshop/llm-gateway/internal/infrastructure/usagecallbackstore"
 )
 
 func main() {
@@ -33,43 +32,6 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-
-	var cbStore auth.UsageCallbackStore
-	switch cfg.Storage.Backend {
-	case "gorm":
-		cbStore, err = usagecallbackstore.NewGorm(usagecallbackstore.GormConfig{
-			Driver:   cfg.Storage.Gorm.Driver,
-			Host:     cfg.Storage.Gorm.Host,
-			Port:     cfg.Storage.Gorm.Port,
-			Username: cfg.Storage.Gorm.Username,
-			Password: cfg.Storage.Gorm.Password,
-			DbName:   cfg.Storage.Gorm.DbName,
-			SSLMode:  cfg.Storage.Gorm.SSLMode,
-		})
-	case "mongodb":
-		cbStore, err = usagecallbackstore.NewMongo(usagecallbackstore.MongoConfig{
-			URI:        cfg.Storage.MongoDB.URI,
-			Database:   cfg.Storage.MongoDB.Database,
-			Collection: cfg.Storage.MongoDB.Collection,
-		})
-	default:
-		err = fmt.Errorf("unsupported storage.backend=%q (supported: gorm, mongodb)", cfg.Storage.Backend)
-	}
-	if cbStore == nil && err == nil {
-		err = fmt.Errorf("storage.backend must be configured (memory backend is not supported)")
-	}
-	if err != nil {
-		slog.Error("init usage callback store failed", "error", err)
-		os.Exit(1)
-	}
-	defer func() {
-		if cbStore != nil {
-			_ = cbStore.Close(context.Background())
-		}
-	}()
-
-	allowlistMgr := auth.NewManager(false, nil, cbStore, cfg.Auth.UsageCallback.CacheTTL)
-	defer func() { _ = allowlistMgr.Close(context.Background()) }()
 
 	// LLM config store (providers + models) - managed via Admin API.
 	var llmStore llmconfigstore.Store
@@ -110,7 +72,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	adminSvc := grpcadapter.NewLLMGatewayAdminService(signer, allowlistMgr, llmStore)
+	adminSvc := grpcadapter.NewLLMGatewayAdminService(signer, llmStore)
 	srv, err := adminserver.New(cfg.GRPC.Listen, cfg.Auth.Admin.ServiceToken, adminSvc)
 	if err != nil {
 		slog.Error("create admin grpc server failed", "error", err)

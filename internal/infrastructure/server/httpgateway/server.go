@@ -16,7 +16,6 @@ import (
 	"github.com/poly-workshop/llm-gateway/internal/infrastructure/auth"
 	"github.com/poly-workshop/llm-gateway/internal/infrastructure/config"
 	"github.com/poly-workshop/llm-gateway/internal/infrastructure/health"
-	"github.com/poly-workshop/llm-gateway/internal/infrastructure/usagecallback"
 )
 
 type Server struct {
@@ -25,8 +24,7 @@ type Server struct {
 	app     *llmgateway.Service
 	authMgr *auth.Manager
 
-	cbSender *usagecallback.Sender
-	cors     config.CORSConfig
+	cors config.CORSConfig
 }
 
 func New(httpListen string, appSvc *llmgateway.Service, authMgr *auth.Manager, corsCfg config.CORSConfig) (*Server, error) {
@@ -40,7 +38,6 @@ func New(httpListen string, appSvc *llmgateway.Service, authMgr *auth.Manager, c
 		httpListen: httpListen,
 		app:        appSvc,
 		authMgr:    authMgr,
-		cbSender:   usagecallback.New(nil, 3*time.Second),
 		cors:       corsCfg,
 	}, nil
 }
@@ -307,14 +304,6 @@ func (s *Server) handleCreateChatCompletion(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Send usage callback (best-effort).
-	s.maybeSendUsageCallback(r, "chat.completions", llm.Generation{
-		ID:      res.ID,
-		Model:   res.Model,
-		Created: res.Created,
-		Usage:   res.Usage,
-	})
-
 	choices := make([]ChatCompletionChoice, 0, len(res.Choices))
 	for _, c := range res.Choices {
 		choices = append(choices, ChatCompletionChoice{
@@ -370,18 +359,6 @@ func (s *Server) handleCreateEmbeddings(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Send usage callback (best-effort).
-	s.maybeSendUsageCallback(r, "embeddings", llm.Generation{
-		ID:      res.ID,
-		Model:   res.Model,
-		Created: 0,
-		Usage: llm.TokenUsage{
-			PromptTokens:     res.Usage.PromptTokens,
-			CompletionTokens: 0,
-			TotalTokens:      res.Usage.TotalTokens,
-		},
-	})
-
 	data := make([]Embedding, 0, len(res.Data))
 	for _, e := range res.Data {
 		data = append(data, Embedding{Index: e.Index, Embedding: e.Vector})
@@ -413,47 +390,6 @@ func (s *Server) handleGetGeneration(w http.ResponseWriter, r *http.Request, id 
 			},
 		},
 	})
-}
-
-func (s *Server) maybeSendUsageCallback(r *http.Request, op string, gen llm.Generation) {
-	if s == nil || s.authMgr == nil || s.cbSender == nil || r == nil {
-		return
-	}
-	subject := auth.SubjectFromContext(r.Context())
-	if subject == "" {
-		return
-	}
-
-	cbURL := r.Header.Get("X-Usage-Callback")
-	if cbURL == "" {
-		return
-	}
-	if !s.authMgr.IsUsageCallbackAllowed(r.Context(), subject, cbURL) {
-		slog.Warn("usage callback url not allowed", "url", cbURL, "subject", subject, "op", op)
-		return
-	}
-
-	requestID := r.Header.Get("X-Request-Id")
-
-	payload := usagecallback.Payload{
-		Event:            "llm.usage",
-		Subject:          subject,
-		RequestID:        requestID,
-		Operation:        op,
-		GenerationID:     gen.ID,
-		Model:            gen.Model,
-		CreatedUnix:      gen.Created,
-		PromptTokens:     gen.Usage.PromptTokens,
-		CompletionTokens: gen.Usage.CompletionTokens,
-		TotalTokens:      gen.Usage.TotalTokens,
-		OccurredAtUnix:   time.Now().Unix(),
-	}
-
-	go func() {
-		if err := s.cbSender.Send(context.Background(), cbURL, payload); err != nil {
-			slog.Warn("usage callback failed", "url", cbURL, "subject", subject, "op", op, "generation_id", gen.ID, "error", err)
-		}
-	}()
 }
 
 func writeErr(w http.ResponseWriter, err error) {

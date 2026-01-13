@@ -2,7 +2,6 @@ package grpcadapter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -18,12 +17,11 @@ type LLMGatewayAdminService struct {
 	adminv1.UnimplementedLLMGatewayAdminServiceServer
 
 	signer *auth.JWTSigner
-	auth   *auth.Manager // for usage callback allowlist store/cache
 	llm    llmconfigstore.Store
 }
 
-func NewLLMGatewayAdminService(signer *auth.JWTSigner, allowlistMgr *auth.Manager, llmStore llmconfigstore.Store) *LLMGatewayAdminService {
-	return &LLMGatewayAdminService{signer: signer, auth: allowlistMgr, llm: llmStore}
+func NewLLMGatewayAdminService(signer *auth.JWTSigner, llmStore llmconfigstore.Store) *LLMGatewayAdminService {
+	return &LLMGatewayAdminService{signer: signer, llm: llmStore}
 }
 
 func (s *LLMGatewayAdminService) IssueToken(ctx context.Context, req *adminv1.IssueTokenRequest) (*adminv1.IssueTokenResponse, error) {
@@ -181,34 +179,6 @@ func (s *LLMGatewayAdminService) ListModels(ctx context.Context, _ *adminv1.List
 		})
 	}
 	return &adminv1.ListModelsResponse{Models: out}, nil
-}
-
-func (s *LLMGatewayAdminService) SetUsageCallbackAllowlist(ctx context.Context, req *adminv1.SetUsageCallbackAllowlistRequest) (*adminv1.SetUsageCallbackAllowlistResponse, error) {
-	if s == nil || s.auth == nil {
-		return nil, status.Error(codes.FailedPrecondition, "allowlist store not configured")
-	}
-	subject := req.GetSubject()
-	if subject == "" {
-		return nil, status.Error(codes.InvalidArgument, "missing subject")
-	}
-	if err := s.auth.SetUsageCallbackAllowlist(ctx, subject, req.GetUrls()); err != nil {
-		if errors.Is(err, auth.ErrForbidden) {
-			return nil, status.Error(codes.InvalidArgument, err.Error())
-		}
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-	return &adminv1.SetUsageCallbackAllowlistResponse{Urls: s.auth.UsageCallbackAllowlist(ctx, subject)}, nil
-}
-
-func (s *LLMGatewayAdminService) GetUsageCallbackAllowlist(ctx context.Context, req *adminv1.GetUsageCallbackAllowlistRequest) (*adminv1.GetUsageCallbackAllowlistResponse, error) {
-	if s == nil || s.auth == nil {
-		return nil, status.Error(codes.FailedPrecondition, "allowlist store not configured")
-	}
-	subject := req.GetSubject()
-	if subject == "" {
-		return nil, status.Error(codes.InvalidArgument, "missing subject")
-	}
-	return &adminv1.GetUsageCallbackAllowlistResponse{Urls: s.auth.UsageCallbackAllowlist(ctx, subject)}, nil
 }
 
 func providerEnumToString(p adminv1.ProviderType) (string, error) {
