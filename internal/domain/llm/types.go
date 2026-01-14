@@ -1,10 +1,11 @@
 package llm
 
 type Model struct {
-	ID           string
-	Name         string
-	Provider     string
-	Capabilities []string
+	ID              string
+	Name            string
+	Provider        string
+	Capabilities    []string
+	MaxOutputTokens uint32
 }
 
 type Embedding struct {

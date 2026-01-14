@@ -130,11 +130,12 @@ func (s *LLMGatewayAdminService) UpsertModel(ctx context.Context, req *adminv1.U
 	}
 	modelID := provider + "/" + upstream
 	in := llmconfigstore.ModelSpec{
-		ID:            modelID,
-		Name:          upstream,
-		Provider:      provider,
-		Capabilities:  capabilities,
-		UpstreamModel: upstream,
+		ID:              modelID,
+		Name:            upstream,
+		Provider:        provider,
+		Capabilities:    capabilities,
+		UpstreamModel:   upstream,
+		MaxOutputTokens: m.GetMaxOutputTokens(),
 	}
 	if err := s.llm.UpsertModel(ctx, in); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
@@ -172,10 +173,11 @@ func (s *LLMGatewayAdminService) ListModels(ctx context.Context, _ *adminv1.List
 		}
 		caps := capabilityStringsToEnums(m.Capabilities)
 		out = append(out, &adminv1.ModelSpec{
-			Id:            m.ID,
-			Provider:      p,
-			Capabilities:  caps,
-			UpstreamModel: m.UpstreamModel,
+			Id:              m.ID,
+			Provider:        p,
+			Capabilities:    caps,
+			UpstreamModel:   m.UpstreamModel,
+			MaxOutputTokens: m.MaxOutputTokens,
 		})
 	}
 	return &adminv1.ListModelsResponse{Models: out}, nil

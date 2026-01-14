@@ -35,13 +35,14 @@ type providerDoc struct {
 }
 
 type modelDoc struct {
-	ID            string    `bson:"_id"`
-	Name          string    `bson:"name"`
-	Provider      string    `bson:"provider"`
-	Capabilities  []string  `bson:"capabilities"`
-	UpstreamModel string    `bson:"upstream_model"`
-	UpdatedAt     time.Time `bson:"updated_at"`
-	CreatedAt     time.Time `bson:"created_at"`
+	ID              string    `bson:"_id"`
+	Name            string    `bson:"name"`
+	Provider        string    `bson:"provider"`
+	Capabilities    []string  `bson:"capabilities"`
+	UpstreamModel   string    `bson:"upstream_model"`
+	MaxOutputTokens uint32    `bson:"max_output_tokens"`
+	UpdatedAt       time.Time `bson:"updated_at"`
+	CreatedAt       time.Time `bson:"created_at"`
 }
 
 func NewMongo(cfg MongoConfig) (Store, error) {
@@ -160,11 +161,12 @@ func (s *mongoStore) UpsertModel(ctx context.Context, model ModelSpec) error {
 	now := time.Now()
 	update := bson.M{
 		"$set": bson.M{
-			"name":           model.Name,
-			"provider":       model.Provider,
-			"capabilities":   model.Capabilities,
-			"upstream_model": model.UpstreamModel,
-			"updated_at":     now,
+			"name":               model.Name,
+			"provider":           model.Provider,
+			"capabilities":       model.Capabilities,
+			"upstream_model":     model.UpstreamModel,
+			"max_output_tokens":  model.MaxOutputTokens,
+			"updated_at":         now,
 		},
 		"$setOnInsert": bson.M{
 			"created_at": now,
@@ -195,11 +197,12 @@ func (s *mongoStore) ListModels(ctx context.Context) ([]ModelSpec, error) {
 			return nil, err
 		}
 		out = append(out, ModelSpec{
-			ID:            d.ID,
-			Name:          d.Name,
-			Provider:      d.Provider,
-			Capabilities:  d.Capabilities,
-			UpstreamModel: d.UpstreamModel,
+			ID:              d.ID,
+			Name:            d.Name,
+			Provider:        d.Provider,
+			Capabilities:    d.Capabilities,
+			UpstreamModel:   d.UpstreamModel,
+			MaxOutputTokens: d.MaxOutputTokens,
 		})
 	}
 	return out, cur.Err()

@@ -394,7 +394,9 @@ func (s *Server) handleGetGeneration(w http.ResponseWriter, r *http.Request, id 
 
 func writeErr(w http.ResponseWriter, err error) {
 	if errors.Is(err, llm.ErrInvalidArgument) {
-		writeJSONError(w, http.StatusBadRequest, err.Error())
+		// Unwrap the error message to provide clean API responses
+		msg := strings.TrimPrefix(err.Error(), "invalid argument: ")
+		writeJSONError(w, http.StatusBadRequest, msg)
 		return
 	}
 	writeJSONError(w, http.StatusInternalServerError, err.Error())
@@ -407,9 +409,18 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 }
 
 func writeJSONError(w http.ResponseWriter, status int, msg string) {
+	errorType := "internal_error"
+	if status == http.StatusBadRequest {
+		errorType = "invalid_request_error"
+	} else if status == http.StatusUnauthorized {
+		errorType = "authentication_error"
+	} else if status == http.StatusForbidden {
+		errorType = "permission_error"
+	}
 	writeJSON(w, status, map[string]any{
 		"error": map[string]any{
 			"message": msg,
+			"type":    errorType,
 		},
 	})
 }
