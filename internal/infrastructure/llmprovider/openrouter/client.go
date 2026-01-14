@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/poly-workshop/llm-gateway/internal/domain/llm"
+	"github.com/poly-workshop/llm-gateway/internal/infrastructure/llmprovider/openaiwire"
 )
 
 // Provider implements application.llmgateway.Provider for OpenRouter API.
@@ -39,63 +40,16 @@ func NewProvider(baseURL, apiKey string, timeout time.Duration) *Provider {
 }
 
 func (p *Provider) CreateChatCompletion(ctx context.Context, req llm.ChatCompletionRequest) (llm.ChatCompletionResponse, error) {
-	// OpenAI-compatible request/response shapes (minimal subset).
-	// For vision models, content can be an array of content parts.
-	type imageURL struct {
-		URL    string `json:"url"`
-		Detail string `json:"detail,omitempty"`
-	}
-	type contentPart struct {
-		Type     string    `json:"type"`
-		Text     string    `json:"text,omitempty"`
-		ImageURL *imageURL `json:"image_url,omitempty"`
-	}
-	// message supports both simple text content and multimodal content.
-	type message struct {
-		Role    string `json:"role"`
-		Content any    `json:"content"` // string or []contentPart
-		Name    string `json:"name,omitempty"`
-	}
-	type responseMessage struct {
-		Role    string `json:"role"`
-		Content string `json:"content"`
-		Name    string `json:"name,omitempty"`
-	}
-	type chatReq struct {
-		Model       string    `json:"model"`
-		Messages    []message `json:"messages"`
-		Temperature float64   `json:"temperature,omitempty"`
-		MaxTokens   uint32    `json:"max_tokens,omitempty"`
-		User        string    `json:"user,omitempty"`
-	}
-	type usage struct {
-		PromptTokens     uint32 `json:"prompt_tokens"`
-		CompletionTokens uint32 `json:"completion_tokens"`
-		TotalTokens      uint32 `json:"total_tokens"`
-	}
-	type choice struct {
-		Index        uint32          `json:"index"`
-		Message      responseMessage `json:"message"`
-		FinishReason string          `json:"finish_reason"`
-	}
-	type chatResp struct {
-		ID      string   `json:"id"`
-		Created int64    `json:"created"`
-		Model   string   `json:"model"`
-		Choices []choice `json:"choices"`
-		Usage   usage    `json:"usage"`
-	}
-
-	msgs := make([]message, 0, len(req.Messages))
+	msgs := make([]openaiwire.Message, 0, len(req.Messages))
 	for _, m := range req.Messages {
 		var content any
 		if len(m.ContentParts) > 0 {
 			// Multimodal message with content parts (for vision models).
-			parts := make([]contentPart, 0, len(m.ContentParts))
+			parts := make([]openaiwire.ContentPart, 0, len(m.ContentParts))
 			for _, cp := range m.ContentParts {
-				part := contentPart{Type: cp.Type, Text: cp.Text}
+				part := openaiwire.ContentPart{Type: cp.Type, Text: cp.Text}
 				if cp.ImageURL != nil {
-					part.ImageURL = &imageURL{URL: cp.ImageURL.URL, Detail: cp.ImageURL.Detail}
+					part.ImageURL = &openaiwire.ImageURL{URL: cp.ImageURL.URL, Detail: cp.ImageURL.Detail}
 				}
 				parts = append(parts, part)
 			}
@@ -104,10 +58,10 @@ func (p *Provider) CreateChatCompletion(ctx context.Context, req llm.ChatComplet
 			// Simple text message.
 			content = m.Content
 		}
-		msgs = append(msgs, message{Role: m.Role, Content: content, Name: m.Name})
+		msgs = append(msgs, openaiwire.Message{Role: m.Role, Content: content, Name: m.Name})
 	}
 
-	body := chatReq{
+	body := openaiwire.ChatCompletionRequest{
 		Model:       req.Model,
 		Messages:    msgs,
 		Temperature: req.Temperature,
@@ -115,7 +69,7 @@ func (p *Provider) CreateChatCompletion(ctx context.Context, req llm.ChatComplet
 		User:        req.User,
 	}
 
-	var out chatResp
+	var out openaiwire.ChatCompletionResponse
 	if err := p.doJSON(ctx, http.MethodPost, p.baseURL+"/chat/completions", body, &out); err != nil {
 		return llm.ChatCompletionResponse{}, err
 	}
@@ -147,28 +101,8 @@ func (p *Provider) CreateChatCompletion(ctx context.Context, req llm.ChatComplet
 }
 
 func (p *Provider) CreateEmbeddings(ctx context.Context, req llm.EmbeddingsRequest) (llm.EmbeddingsResponse, error) {
-	type embReq struct {
-		Model string   `json:"model"`
-		Input []string `json:"input"`
-		User  string   `json:"user,omitempty"`
-	}
-	type embDatum struct {
-		Index     uint32    `json:"index"`
-		Embedding []float32 `json:"embedding"`
-	}
-	type embUsage struct {
-		PromptTokens uint32 `json:"prompt_tokens"`
-		TotalTokens  uint32 `json:"total_tokens"`
-	}
-	type embResp struct {
-		ID    string     `json:"id"`
-		Model string     `json:"model"`
-		Data  []embDatum `json:"data"`
-		Usage embUsage   `json:"usage"`
-	}
-
-	var out embResp
-	if err := p.doJSON(ctx, http.MethodPost, p.baseURL+"/embeddings", embReq{Model: req.Model, Input: req.Input, User: req.User}, &out); err != nil {
+	var out openaiwire.EmbeddingResponse
+	if err := p.doJSON(ctx, http.MethodPost, p.baseURL+"/embeddings", openaiwire.EmbeddingRequest{Model: req.Model, Input: req.Input, User: req.User}, &out); err != nil {
 		return llm.EmbeddingsResponse{}, err
 	}
 

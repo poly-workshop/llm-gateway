@@ -175,6 +175,24 @@ Config:
 
 Model catalog is managed via Admin API (stored centrally in DB).
 
+### OpenAI Wire Types (Shared)
+
+Both DashScope and OpenRouter providers use OpenAI-compatible wire protocols for HTTP requests and responses. To reduce duplication and improve maintainability, all OpenAI wire types are defined in a shared package:
+
+**Package**: `internal/infrastructure/llmprovider/openaiwire`
+
+**Files**:
+- `chat.go`: Chat completion request/response types (Message, ContentPart, ImageURL, Usage, Choice, ChatCompletionRequest, ChatCompletionResponse, etc.)
+- `embeddings.go`: Embeddings request/response types (EmbeddingRequest, EmbeddingResponse, EmbeddingDatum, EmbeddingUsage)
+
+**Key principles**:
+- Wire types are strictly isolated from domain types (`internal/domain/llm`)
+- Providers must explicitly convert between wire ↔ domain types
+- Wire types follow OpenAI's official schema for JSON encoding/decoding
+- All providers using OpenAI-compatible endpoints should use these shared types
+
+This design prevents protocol drift, reduces maintenance burden, and ensures consistency when adding new providers or protocol features (e.g., tool calls, streaming).
+
 ### Model routing convention
 
 - Gateway-facing model IDs are `provider/model`, e.g. `dashscope/qwen-turbo`, `openrouter/openai/gpt-4o`
