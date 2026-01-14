@@ -68,7 +68,7 @@ func (s *Server) Start(ctx context.Context) error {
 		})
 		r.Post("/chat/completions", s.handleCreateChatCompletion)
 		r.Post("/chat/completions:stream", func(w http.ResponseWriter, r *http.Request) {
-			writeJSONError(w, http.StatusNotImplemented, "not implemented")
+			http.NotFound(w, r)
 		})
 		r.Post("/embeddings", s.handleCreateEmbeddings)
 		r.Get("/generation/{id}", func(w http.ResponseWriter, r *http.Request) {
@@ -273,6 +273,13 @@ func (s *Server) handleCreateChatCompletion(w http.ResponseWriter, r *http.Reque
 		writeJSONError(w, http.StatusBadRequest, "invalid json")
 		return
 	}
+	
+	// Check if streaming is requested
+	if req.Stream {
+		writeJSONError(w, http.StatusNotImplemented, "streaming not yet implemented")
+		return
+	}
+	
 	if ids := auth.AllowedModelsFromContext(r.Context()); len(ids) > 0 {
 		allowed := make(map[string]struct{}, len(ids))
 		for _, mid := range ids {
