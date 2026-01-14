@@ -105,10 +105,10 @@ func TestMaxTokens_ExceedsLimit(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected error message in response")
 	}
-	// The error message may be wrapped with "invalid argument: " prefix
-	expectedCore := "max_tokens (101) exceeds model limit (100)"
-	if msg != expectedCore && msg != "invalid argument: "+expectedCore {
-		t.Errorf("error message should contain '%s', got: %s", expectedCore, msg)
+	// The error message should be clean without "invalid argument: " prefix
+	expectedMsg := "max_tokens (101) exceeds model limit (100)"
+	if msg != expectedMsg {
+		t.Errorf("expected error message '%s', got: %s", expectedMsg, msg)
 	}
 }
 
