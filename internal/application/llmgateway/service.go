@@ -168,6 +168,34 @@ func (s *Service) CreateChatCompletion(ctx context.Context, req llm.ChatCompleti
 	return resp, nil
 }
 
+func (s *Service) StreamChatCompletion(ctx context.Context, req llm.ChatCompletionRequest) (llm.ChatCompletionStream, error) {
+	if req.Model == "" {
+		return nil, llm.InvalidArgument("model is required")
+	}
+	if len(req.Messages) == 0 {
+		return nil, llm.InvalidArgument("messages is required")
+	}
+
+	routedModel := req.Model
+	s.mu.RLock()
+	// Validate max_tokens limit before resolving provider
+	if modelSpec, ok := s.models[routedModel]; ok && modelSpec.MaxOutputTokens > 0 {
+		if req.MaxTokens > modelSpec.MaxOutputTokens {
+			s.mu.RUnlock()
+			return nil, llm.InvalidArgument(
+				fmt.Sprintf("max_tokens (%d) exceeds model limit (%d)", req.MaxTokens, modelSpec.MaxOutputTokens),
+			)
+		}
+	}
+	p, upstreamModel, err := s.resolveProviderAndUpstreamModel(routedModel)
+	s.mu.RUnlock()
+	if err != nil {
+		return nil, err
+	}
+	req.Model = upstreamModel
+	return p.StreamChatCompletion(ctx, req)
+}
+
 func (s *Service) resolveProviderAndUpstreamModel(routedModel string) (Provider, string, error) {
 	// If explicitly declared in model specs, prefer that.
 	if m, ok := s.models[routedModel]; ok {

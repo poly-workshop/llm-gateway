@@ -97,3 +97,34 @@ type Generation struct {
 	Created int64
 	Usage   TokenUsage
 }
+
+// ChatMessageDelta represents incremental content in a streaming chunk.
+type ChatMessageDelta struct {
+	Role    string
+	Content string
+}
+
+// ChatCompletionChunkChoice represents a single choice in a streaming chunk.
+type ChatCompletionChunkChoice struct {
+	Index        uint32
+	Delta        ChatMessageDelta
+	FinishReason string
+}
+
+// ChatCompletionChunk represents a chunk in the streaming response.
+type ChatCompletionChunk struct {
+	ID      string
+	Object  string
+	Created int64
+	Model   string
+	Choices []ChatCompletionChunkChoice
+}
+
+// ChatCompletionStream represents a stream of chat completion chunks.
+type ChatCompletionStream interface {
+	// Recv receives the next chunk from the stream.
+	// Returns io.EOF when the stream is complete.
+	Recv() (ChatCompletionChunk, error)
+	// Close closes the stream.
+	Close() error
+}

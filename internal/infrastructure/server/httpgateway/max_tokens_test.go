@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,6 +16,7 @@ import (
 // mockProvider implements llmgateway.Provider for testing
 type mockProvider struct {
 	createChatCompletionFunc func(req llm.ChatCompletionRequest) (llm.ChatCompletionResponse, error)
+	streamChatCompletionFunc func(req llm.ChatCompletionRequest) (llm.ChatCompletionStream, error)
 }
 
 func (m *mockProvider) CreateChatCompletion(_ context.Context, req llm.ChatCompletionRequest) (llm.ChatCompletionResponse, error) {
@@ -45,6 +47,78 @@ func (m *mockProvider) CreateChatCompletion(_ context.Context, req llm.ChatCompl
 
 func (m *mockProvider) CreateEmbeddings(_ context.Context, req llm.EmbeddingsRequest) (llm.EmbeddingsResponse, error) {
 	return llm.EmbeddingsResponse{}, nil
+}
+
+func (m *mockProvider) StreamChatCompletion(_ context.Context, req llm.ChatCompletionRequest) (llm.ChatCompletionStream, error) {
+	if m.streamChatCompletionFunc != nil {
+		return m.streamChatCompletionFunc(req)
+	}
+	return &mockStream{
+		chunks: []llm.ChatCompletionChunk{
+			{
+				ID:      "chatcmpl-test-stream",
+				Object:  "chat.completion.chunk",
+				Created: 1234567890,
+				Model:   req.Model,
+				Choices: []llm.ChatCompletionChunkChoice{
+					{
+						Index: 0,
+						Delta: llm.ChatMessageDelta{
+							Role:    "assistant",
+							Content: "Test",
+						},
+					},
+				},
+			},
+			{
+				ID:      "chatcmpl-test-stream",
+				Object:  "chat.completion.chunk",
+				Created: 1234567890,
+				Model:   req.Model,
+				Choices: []llm.ChatCompletionChunkChoice{
+					{
+						Index: 0,
+						Delta: llm.ChatMessageDelta{
+							Content: " streaming",
+						},
+					},
+				},
+			},
+			{
+				ID:      "chatcmpl-test-stream",
+				Object:  "chat.completion.chunk",
+				Created: 1234567890,
+				Model:   req.Model,
+				Choices: []llm.ChatCompletionChunkChoice{
+					{
+						Index: 0,
+						Delta: llm.ChatMessageDelta{
+							Content: " response",
+						},
+						FinishReason: "stop",
+					},
+				},
+			},
+		},
+	}, nil
+}
+
+type mockStream struct {
+	chunks []llm.ChatCompletionChunk
+	index  int
+}
+
+func (s *mockStream) Recv() (llm.ChatCompletionChunk, error) {
+	if s.index >= len(s.chunks) {
+		return llm.ChatCompletionChunk{}, io.EOF
+	}
+	chunk := s.chunks[s.index]
+	s.index++
+	return chunk, nil
+}
+
+func (s *mockStream) Close() error {
+	return nil
 }
 
 func TestMaxTokens_ExceedsLimit(t *testing.T) {

@@ -110,6 +110,28 @@ type GetGenerationResponse struct {
 	Generation Generation `json:"generation"`
 }
 
+// ChatCompletionChunkDelta represents the delta in a streaming chunk.
+type ChatCompletionChunkDelta struct {
+	Role    string `json:"role,omitempty"`
+	Content string `json:"content,omitempty"`
+}
+
+// ChatCompletionChunkChoiceOut represents a choice in a streaming chunk.
+type ChatCompletionChunkChoiceOut struct {
+	Index        uint32                   `json:"index"`
+	Delta        ChatCompletionChunkDelta `json:"delta"`
+	FinishReason string                   `json:"finish_reason,omitempty"`
+}
+
+// ChatCompletionChunkResponse represents a streaming chunk response.
+type ChatCompletionChunkResponse struct {
+	ID      string                         `json:"id"`
+	Object  string                         `json:"object"`
+	Created int64                          `json:"created"`
+	Model   string                         `json:"model"`
+	Choices []ChatCompletionChunkChoiceOut `json:"choices"`
+}
+
 func (r CreateChatCompletionRequest) toDomainMessages() ([]llm.ChatMessage, error) {
 	if len(r.Messages) == 0 {
 		return nil, errors.New("messages is required")

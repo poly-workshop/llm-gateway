@@ -11,6 +11,7 @@ import (
 type Provider interface {
 	CreateChatCompletion(ctx context.Context, req llm.ChatCompletionRequest) (llm.ChatCompletionResponse, error)
 	CreateEmbeddings(ctx context.Context, req llm.EmbeddingsRequest) (llm.EmbeddingsResponse, error)
+	StreamChatCompletion(ctx context.Context, req llm.ChatCompletionRequest) (llm.ChatCompletionStream, error)
 }
 
 // GenerationRepository is an application port for storing and retrieving generation records.

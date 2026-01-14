@@ -60,3 +60,25 @@ type ChatCompletionResponse struct {
 	Choices []Choice `json:"choices"`
 	Usage   Usage    `json:"usage"`
 }
+
+// DeltaMessage represents an incremental message in a streaming chunk.
+type DeltaMessage struct {
+	Role    string `json:"role,omitempty"`
+	Content string `json:"content,omitempty"`
+}
+
+// ChunkChoice represents a single choice in a streaming chunk.
+type ChunkChoice struct {
+	Index        uint32       `json:"index"`
+	Delta        DeltaMessage `json:"delta"`
+	FinishReason string       `json:"finish_reason,omitempty"`
+}
+
+// ChatCompletionChunk represents a chunk in the streaming response.
+type ChatCompletionChunk struct {
+	ID      string        `json:"id"`
+	Object  string        `json:"object"`
+	Created int64         `json:"created"`
+	Model   string        `json:"model"`
+	Choices []ChunkChoice `json:"choices"`
+}
