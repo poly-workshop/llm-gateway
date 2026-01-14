@@ -1,6 +1,15 @@
 package openaiwire
 
-import "github.com/poly-workshop/llm-gateway/internal/domain/llm"
+import (
+	"bufio"
+	"encoding/json"
+	"io"
+	"log/slog"
+	"net/http"
+	"strings"
+
+	"github.com/poly-workshop/llm-gateway/internal/domain/llm"
+)
 
 // ImageURL represents an image URL with optional detail level for vision models.
 type ImageURL struct {
@@ -109,4 +118,71 @@ func ConvertDomainMessages(domainMessages []llm.ChatMessage) []Message {
 		msgs = append(msgs, Message{Role: m.Role, Content: content, Name: m.Name})
 	}
 	return msgs
+}
+
+// NewSSEStream creates a new SSE stream from an HTTP response.
+// It parses Server-Sent Events and converts them to domain ChatCompletionChunk objects.
+func NewSSEStream(resp *http.Response) llm.ChatCompletionStream {
+	return &sseStream{
+		resp:   resp,
+		reader: bufio.NewReader(resp.Body),
+	}
+}
+
+type sseStream struct {
+	resp   *http.Response
+	reader *bufio.Reader
+}
+
+func (s *sseStream) Recv() (llm.ChatCompletionChunk, error) {
+	for {
+		line, err := s.reader.ReadString('\n')
+		if err != nil {
+			return llm.ChatCompletionChunk{}, err
+		}
+
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+
+		data := strings.TrimPrefix(line, "data: ")
+		if data == "[DONE]" {
+			return llm.ChatCompletionChunk{}, io.EOF
+		}
+
+		var chunk ChatCompletionChunk
+		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+			slog.Warn("skipping malformed chunk", "error", err, "data", data)
+			continue // Skip malformed chunks
+		}
+
+		choices := make([]llm.ChatCompletionChunkChoice, 0, len(chunk.Choices))
+		for _, c := range chunk.Choices {
+			choices = append(choices, llm.ChatCompletionChunkChoice{
+				Index: c.Index,
+				Delta: llm.ChatMessageDelta{
+					Role:    c.Delta.Role,
+					Content: c.Delta.Content,
+				},
+				FinishReason: c.FinishReason,
+			})
+		}
+
+		return llm.ChatCompletionChunk{
+			ID:      chunk.ID,
+			Object:  chunk.Object,
+			Created: chunk.Created,
+			Model:   chunk.Model,
+			Choices: choices,
+		}, nil
+	}
+}
+
+func (s *sseStream) Close() error {
+	return s.resp.Body.Close()
 }

@@ -1,13 +1,11 @@
 package dashscope
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -213,67 +211,5 @@ func (p *Provider) doStreamingRequest(ctx context.Context, url string, body open
 		return nil, fmt.Errorf("dashscope http %d: %s", resp.StatusCode, msg)
 	}
 
-	return &sseStream{
-		resp:   resp,
-		reader: bufio.NewReader(resp.Body),
-	}, nil
+	return openaiwire.NewSSEStream(resp), nil
 }
-
-type sseStream struct {
-	resp   *http.Response
-	reader *bufio.Reader
-}
-
-func (s *sseStream) Recv() (llm.ChatCompletionChunk, error) {
-	for {
-		line, err := s.reader.ReadString('\n')
-		if err != nil {
-			return llm.ChatCompletionChunk{}, err
-		}
-
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		if !strings.HasPrefix(line, "data: ") {
-			continue
-		}
-
-		data := strings.TrimPrefix(line, "data: ")
-		if data == "[DONE]" {
-			return llm.ChatCompletionChunk{}, io.EOF
-		}
-
-		var chunk openaiwire.ChatCompletionChunk
-		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
-			slog.Warn("skipping malformed chunk", "error", err, "data", data)
-			continue // Skip malformed chunks
-		}
-
-		choices := make([]llm.ChatCompletionChunkChoice, 0, len(chunk.Choices))
-		for _, c := range chunk.Choices {
-			choices = append(choices, llm.ChatCompletionChunkChoice{
-				Index: c.Index,
-				Delta: llm.ChatMessageDelta{
-					Role:    c.Delta.Role,
-					Content: c.Delta.Content,
-				},
-				FinishReason: c.FinishReason,
-			})
-		}
-
-		return llm.ChatCompletionChunk{
-			ID:      chunk.ID,
-			Object:  chunk.Object,
-			Created: chunk.Created,
-			Model:   chunk.Model,
-			Choices: choices,
-		}, nil
-	}
-}
-
-func (s *sseStream) Close() error {
-	return s.resp.Body.Close()
-}
-
