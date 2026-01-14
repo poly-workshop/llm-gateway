@@ -44,26 +44,7 @@ func NewProvider(baseURL, apiKey string, timeout time.Duration) *Provider {
 }
 
 func (p *Provider) CreateChatCompletion(ctx context.Context, req llm.ChatCompletionRequest) (llm.ChatCompletionResponse, error) {
-	msgs := make([]openaiwire.Message, 0, len(req.Messages))
-	for _, m := range req.Messages {
-		var content any
-		if len(m.ContentParts) > 0 {
-			// Multimodal message with content parts (for vision models).
-			parts := make([]openaiwire.ContentPart, 0, len(m.ContentParts))
-			for _, cp := range m.ContentParts {
-				part := openaiwire.ContentPart{Type: cp.Type, Text: cp.Text}
-				if cp.ImageURL != nil {
-					part.ImageURL = &openaiwire.ImageURL{URL: cp.ImageURL.URL, Detail: cp.ImageURL.Detail}
-				}
-				parts = append(parts, part)
-			}
-			content = parts
-		} else {
-			// Simple text message.
-			content = m.Content
-		}
-		msgs = append(msgs, openaiwire.Message{Role: m.Role, Content: content, Name: m.Name})
-	}
+	msgs := openaiwire.ConvertDomainMessages(req.Messages)
 
 	body := openaiwire.ChatCompletionRequest{
 		Model:       req.Model,
@@ -105,26 +86,7 @@ func (p *Provider) CreateChatCompletion(ctx context.Context, req llm.ChatComplet
 }
 
 func (p *Provider) StreamChatCompletion(ctx context.Context, req llm.ChatCompletionRequest) (llm.ChatCompletionStream, error) {
-	msgs := make([]openaiwire.Message, 0, len(req.Messages))
-	for _, m := range req.Messages {
-		var content any
-		if len(m.ContentParts) > 0 {
-			// Multimodal message with content parts (for vision models).
-			parts := make([]openaiwire.ContentPart, 0, len(m.ContentParts))
-			for _, cp := range m.ContentParts {
-				part := openaiwire.ContentPart{Type: cp.Type, Text: cp.Text}
-				if cp.ImageURL != nil {
-					part.ImageURL = &openaiwire.ImageURL{URL: cp.ImageURL.URL, Detail: cp.ImageURL.Detail}
-				}
-				parts = append(parts, part)
-			}
-			content = parts
-		} else {
-			// Simple text message.
-			content = m.Content
-		}
-		msgs = append(msgs, openaiwire.Message{Role: m.Role, Content: content, Name: m.Name})
-	}
+	msgs := openaiwire.ConvertDomainMessages(req.Messages)
 
 	body := openaiwire.ChatCompletionRequest{
 		Model:       req.Model,

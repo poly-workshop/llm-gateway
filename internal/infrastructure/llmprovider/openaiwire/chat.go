@@ -1,5 +1,7 @@
 package openaiwire
 
+import "github.com/poly-workshop/llm-gateway/internal/domain/llm"
+
 // ImageURL represents an image URL with optional detail level for vision models.
 type ImageURL struct {
 	URL    string `json:"url"`
@@ -81,4 +83,30 @@ type ChatCompletionChunk struct {
 	Created int64         `json:"created"`
 	Model   string        `json:"model"`
 	Choices []ChunkChoice `json:"choices"`
+}
+
+// ConvertDomainMessages converts domain ChatMessages to openaiwire Messages.
+// This handles both simple text messages and multimodal messages with content parts.
+func ConvertDomainMessages(domainMessages []llm.ChatMessage) []Message {
+	msgs := make([]Message, 0, len(domainMessages))
+	for _, m := range domainMessages {
+		var content any
+		if len(m.ContentParts) > 0 {
+			// Multimodal message with content parts (for vision models).
+			parts := make([]ContentPart, 0, len(m.ContentParts))
+			for _, cp := range m.ContentParts {
+				part := ContentPart{Type: cp.Type, Text: cp.Text}
+				if cp.ImageURL != nil {
+					part.ImageURL = &ImageURL{URL: cp.ImageURL.URL, Detail: cp.ImageURL.Detail}
+				}
+				parts = append(parts, part)
+			}
+			content = parts
+		} else {
+			// Simple text message.
+			content = m.Content
+		}
+		msgs = append(msgs, Message{Role: m.Role, Content: content, Name: m.Name})
+	}
+	return msgs
 }
