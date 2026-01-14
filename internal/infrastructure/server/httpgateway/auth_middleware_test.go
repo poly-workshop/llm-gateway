@@ -30,7 +30,7 @@ func TestAuthMiddleware_AllowsJWTFromCookie(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewJWTVerifier: %v", err)
 	}
-	mgr := auth.NewManager(true, verifier, nil, 0)
+	mgr := auth.NewManager(true, verifier)
 
 	now := time.Now()
 	token, _, err := signer.Sign("svc-a", 30*time.Second, nil, now)
@@ -75,7 +75,7 @@ func TestAuthMiddleware_AllowsJWTFromAuthorizationHeader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewJWTVerifier: %v", err)
 	}
-	mgr := auth.NewManager(true, verifier, nil, 0)
+	mgr := auth.NewManager(true, verifier)
 
 	now := time.Now()
 	token, _, err := signer.Sign("svc-a", 30*time.Second, nil, now)
@@ -115,7 +115,7 @@ func TestAuthMiddleware_HeaderInvalidCookieValid_Allows(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewJWTVerifier: %v", err)
 	}
-	mgr := auth.NewManager(true, verifier, nil, 0)
+	mgr := auth.NewManager(true, verifier)
 
 	now := time.Now()
 	token, _, err := signer.Sign("svc-a", 30*time.Second, nil, now)
