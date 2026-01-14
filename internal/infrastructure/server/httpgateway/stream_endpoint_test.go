@@ -9,11 +9,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/poly-workshop/llm-gateway/internal/application/llmgateway"
-	"github.com/poly-workshop/llm-gateway/internal/infrastructure/config"
 )
 
 // TestDeprecatedStreamEndpoint_Returns404 verifies that the deprecated
-// /v1/chat/completions:stream endpoint returns 404 Not Found.
+// /v1/chat/completions:stream endpoint returns 404 Not Found (no route registered).
 func TestDeprecatedStreamEndpoint_Returns404(t *testing.T) {
 	// Setup: Create a minimal server
 	provider := &mockProvider{}
@@ -29,14 +28,13 @@ func TestDeprecatedStreamEndpoint_Returns404(t *testing.T) {
 		},
 	}
 	appSvc := llmgateway.NewService(providers, models, nil)
-	_, _ = New(":8080", appSvc, nil, defaultCORSConfig())
+	srv := &Server{app: appSvc}
 
-	// Create a router to test the endpoint
+	// Create a router simulating the actual server routes (without the deprecated endpoint)
 	r := chi.NewRouter()
 	r.Route("/v1", func(r chi.Router) {
-		r.Post("/chat/completions:stream", func(w http.ResponseWriter, r *http.Request) {
-			http.NotFound(w, r)
-		})
+		r.Post("/chat/completions", srv.handleCreateChatCompletion)
+		// Note: /chat/completions:stream is NOT registered, so it should 404
 	})
 
 	// Test: Request to the deprecated endpoint
@@ -55,7 +53,7 @@ func TestDeprecatedStreamEndpoint_Returns404(t *testing.T) {
 
 	r.ServeHTTP(w, req)
 
-	// Assert: Should return 404
+	// Assert: Should return 404 (no route registered)
 	if w.Code != http.StatusNotFound {
 		t.Errorf("expected status 404, got %d", w.Code)
 	}
@@ -162,9 +160,4 @@ func TestStreamParameter_False_WorksNormally(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d: %s", w.Code, w.Body.String())
 	}
-}
-
-// Helper function for CORS config
-func defaultCORSConfig() config.CORSConfig {
-	return config.CORSConfig{}
 }

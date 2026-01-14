@@ -67,9 +67,6 @@ func (s *Server) Start(ctx context.Context) error {
 			s.handleGetModel(w, r, chi.URLParam(r, "id"))
 		})
 		r.Post("/chat/completions", s.handleCreateChatCompletion)
-		r.Post("/chat/completions:stream", func(w http.ResponseWriter, r *http.Request) {
-			http.NotFound(w, r)
-		})
 		r.Post("/embeddings", s.handleCreateEmbeddings)
 		r.Get("/generation/{id}", func(w http.ResponseWriter, r *http.Request) {
 			s.handleGetGeneration(w, r, chi.URLParam(r, "id"))
