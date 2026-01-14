@@ -486,7 +486,8 @@ func (s *Server) handleStreamChatCompletion(w http.ResponseWriter, r *http.Reque
 				flusher.Flush()
 				return
 			}
-			// Silently close on error
+			// Log error and close stream
+			slog.Error("streaming error", "error", err)
 			return
 		}
 

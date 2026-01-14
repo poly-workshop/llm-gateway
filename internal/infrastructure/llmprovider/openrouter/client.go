@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -282,6 +283,7 @@ func (s *sseStream) Recv() (llm.ChatCompletionChunk, error) {
 
 		var chunk openaiwire.ChatCompletionChunk
 		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+			slog.Warn("skipping malformed chunk", "error", err, "data", data)
 			continue // Skip malformed chunks
 		}
 
