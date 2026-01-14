@@ -3,7 +3,6 @@ package httpgateway
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,7 +10,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/poly-workshop/llm-gateway/internal/application/llmgateway"
-	"github.com/poly-workshop/llm-gateway/internal/domain/llm"
 )
 
 // TestDeprecatedStreamEndpoint_Returns404 verifies that the deprecated
