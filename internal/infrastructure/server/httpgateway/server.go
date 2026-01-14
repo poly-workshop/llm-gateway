@@ -487,8 +487,12 @@ func (s *Server) handleStreamChatCompletion(w http.ResponseWriter, r *http.Reque
 				flusher.Flush()
 				return
 			}
-			// Log error and close stream
+			// Log error and send SSE error event, then close stream
 			slog.Error("streaming error", "error", err)
+			if errMsg, marshalErr := json.Marshal(map[string]string{"error": "streaming error"}); marshalErr == nil {
+				fmt.Fprintf(w, "event: error\ndata: %s\n\n", errMsg)
+				flusher.Flush()
+			}
 			return
 		}
 
