@@ -407,9 +407,18 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 }
 
 func writeJSONError(w http.ResponseWriter, status int, msg string) {
+	errorType := "internal_error"
+	if status == http.StatusBadRequest {
+		errorType = "invalid_request_error"
+	} else if status == http.StatusUnauthorized {
+		errorType = "authentication_error"
+	} else if status == http.StatusForbidden {
+		errorType = "permission_error"
+	}
 	writeJSON(w, status, map[string]any{
 		"error": map[string]any{
 			"message": msg,
+			"type":    errorType,
 		},
 	})
 }

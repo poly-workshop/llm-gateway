@@ -34,11 +34,12 @@ type providerRecord struct {
 func (providerRecord) TableName() string { return "llm_gateway_provider_configs" }
 
 type modelRecord struct {
-	ID            string `gorm:"primaryKey;size:256"`
-	Name          string `gorm:"size:512"`
-	Provider      string `gorm:"size:64;not null"`
-	Capabilities  string `gorm:"type:text;not null"` // json array
-	UpstreamModel string `gorm:"size:512"`
+	ID              string `gorm:"primaryKey;size:256"`
+	Name            string `gorm:"size:512"`
+	Provider        string `gorm:"size:64;not null"`
+	Capabilities    string `gorm:"type:text;not null"` // json array
+	UpstreamModel   string `gorm:"size:512"`
+	MaxOutputTokens uint32 `gorm:"default:0"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -140,15 +141,16 @@ func (s *gormStore) UpsertModel(ctx context.Context, model ModelSpec) error {
 	}
 	b, _ := json.Marshal(model.Capabilities)
 	rec := modelRecord{
-		ID:            model.ID,
-		Name:          model.Name,
-		Provider:      model.Provider,
-		Capabilities:  string(b),
-		UpstreamModel: model.UpstreamModel,
+		ID:              model.ID,
+		Name:            model.Name,
+		Provider:        model.Provider,
+		Capabilities:    string(b),
+		UpstreamModel:   model.UpstreamModel,
+		MaxOutputTokens: model.MaxOutputTokens,
 	}
 	return s.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "id"}},
-		DoUpdates: clause.AssignmentColumns([]string{"name", "provider", "capabilities", "upstream_model", "updated_at"}),
+		DoUpdates: clause.AssignmentColumns([]string{"name", "provider", "capabilities", "upstream_model", "max_output_tokens", "updated_at"}),
 	}).Create(&rec).Error
 }
 
@@ -169,11 +171,12 @@ func (s *gormStore) ListModels(ctx context.Context) ([]ModelSpec, error) {
 		var caps []string
 		_ = json.Unmarshal([]byte(r.Capabilities), &caps)
 		out = append(out, ModelSpec{
-			ID:            r.ID,
-			Name:          r.Name,
-			Provider:      r.Provider,
-			Capabilities:  caps,
-			UpstreamModel: r.UpstreamModel,
+			ID:              r.ID,
+			Name:            r.Name,
+			Provider:        r.Provider,
+			Capabilities:    caps,
+			UpstreamModel:   r.UpstreamModel,
+			MaxOutputTokens: r.MaxOutputTokens,
 		})
 	}
 	return out, nil

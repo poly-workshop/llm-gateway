@@ -24,10 +24,11 @@ type Service struct {
 }
 
 type ModelSpec struct {
-	ID           string
-	Name         string
-	Provider     string
-	Capabilities []string
+	ID              string
+	Name            string
+	Provider        string
+	Capabilities    []string
+	MaxOutputTokens uint32
 
 	// UpstreamModel overrides the model name sent to upstream provider.
 	// If empty, the part after "provider/" in ID will be used.
@@ -69,10 +70,11 @@ func (s *Service) ListModels(_ context.Context) ([]llm.Model, error) {
 	out := make([]llm.Model, 0, len(s.models))
 	for _, m := range s.models {
 		out = append(out, llm.Model{
-			ID:           m.ID,
-			Name:         m.Name,
-			Provider:     m.Provider,
-			Capabilities: m.Capabilities,
+			ID:              m.ID,
+			Name:            m.Name,
+			Provider:        m.Provider,
+			Capabilities:    m.Capabilities,
+			MaxOutputTokens: m.MaxOutputTokens,
 		})
 	}
 	return out, nil
@@ -89,10 +91,11 @@ func (s *Service) GetModel(_ context.Context, id string) (llm.Model, error) {
 		return llm.Model{}, llm.InvalidArgument("unknown model: " + id)
 	}
 	return llm.Model{
-		ID:           m.ID,
-		Name:         m.Name,
-		Provider:     m.Provider,
-		Capabilities: m.Capabilities,
+		ID:              m.ID,
+		Name:            m.Name,
+		Provider:        m.Provider,
+		Capabilities:    m.Capabilities,
+		MaxOutputTokens: m.MaxOutputTokens,
 	}, nil
 }
 
@@ -136,6 +139,15 @@ func (s *Service) CreateChatCompletion(ctx context.Context, req llm.ChatCompleti
 
 	routedModel := req.Model
 	s.mu.RLock()
+	// Validate max_tokens limit before resolving provider
+	if modelSpec, ok := s.models[routedModel]; ok && modelSpec.MaxOutputTokens > 0 {
+		if req.MaxTokens > modelSpec.MaxOutputTokens {
+			s.mu.RUnlock()
+			return llm.ChatCompletionResponse{}, llm.InvalidArgument(
+				fmt.Sprintf("max_tokens (%d) exceeds model limit (%d)", req.MaxTokens, modelSpec.MaxOutputTokens),
+			)
+		}
+	}
 	p, upstreamModel, err := s.resolveProviderAndUpstreamModel(routedModel)
 	s.mu.RUnlock()
 	if err != nil {

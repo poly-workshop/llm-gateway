@@ -111,6 +111,8 @@ message ModelSpec {
   repeated ModelCapability capabilities = 4;
   // Optional override for upstream model name.
   string upstream_model = 5;
+  // Optional maximum output tokens allowed for this model. If 0, no limit is enforced.
+  uint32 max_output_tokens = 6;
 }
 
 // ModelConfig is used to configure a routed model.
@@ -120,6 +122,8 @@ message ModelConfig {
   repeated ModelCapability capabilities = 2;
   // Upstream model name as expected by provider (may contain slashes, e.g. "openai/gpt-4o").
   string upstream_model = 3;
+  // Optional maximum output tokens allowed for this model. If 0, no limit is enforced.
+  uint32 max_output_tokens = 4;
 }
 
 message UpsertModelRequest {

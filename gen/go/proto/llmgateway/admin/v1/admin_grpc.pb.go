@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v5.29.3
-// source: llmgateway/admin/v1/admin.proto
+// source: proto/llmgateway/admin/v1/admin.proto
 
 package adminv1
 
@@ -354,5 +354,5 @@ var LLMGatewayAdminService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "llmgateway/admin/v1/admin.proto",
+	Metadata: "proto/llmgateway/admin/v1/admin.proto",
 }

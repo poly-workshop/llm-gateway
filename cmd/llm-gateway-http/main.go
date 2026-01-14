@@ -156,11 +156,12 @@ func loadAndApplyLLMConfig(ctx context.Context, appSvc *llmgateway.Service, stor
 	specs := make([]llmgateway.ModelSpec, 0, len(models))
 	for _, m := range models {
 		specs = append(specs, llmgateway.ModelSpec{
-			ID:            m.ID,
-			Name:          m.Name,
-			Provider:      m.Provider,
-			Capabilities:  m.Capabilities,
-			UpstreamModel: m.UpstreamModel,
+			ID:              m.ID,
+			Name:            m.Name,
+			Provider:        m.Provider,
+			Capabilities:    m.Capabilities,
+			UpstreamModel:   m.UpstreamModel,
+			MaxOutputTokens: m.MaxOutputTokens,
 		})
 	}
 	appSvc.ReplaceConfig(providers, specs)

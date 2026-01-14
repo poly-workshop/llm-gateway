@@ -20,11 +20,12 @@ type ProviderConfigView struct {
 }
 
 type ModelSpec struct {
-	ID            string
-	Name          string
-	Provider      string
-	Capabilities  []string
-	UpstreamModel string
+	ID              string
+	Name            string
+	Provider        string
+	Capabilities    []string
+	UpstreamModel   string
+	MaxOutputTokens uint32
 }
 
 type Store interface {

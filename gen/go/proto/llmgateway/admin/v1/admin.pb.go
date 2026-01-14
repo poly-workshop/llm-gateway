@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v5.29.3
-// source: llmgateway/admin/v1/admin.proto
+// source: proto/llmgateway/admin/v1/admin.proto
 
 package adminv1
 
@@ -56,11 +56,11 @@ func (x ProviderType) String() string {
 }
 
 func (ProviderType) Descriptor() protoreflect.EnumDescriptor {
-	return file_llmgateway_admin_v1_admin_proto_enumTypes[0].Descriptor()
+	return file_proto_llmgateway_admin_v1_admin_proto_enumTypes[0].Descriptor()
 }
 
 func (ProviderType) Type() protoreflect.EnumType {
-	return &file_llmgateway_admin_v1_admin_proto_enumTypes[0]
+	return &file_proto_llmgateway_admin_v1_admin_proto_enumTypes[0]
 }
 
 func (x ProviderType) Number() protoreflect.EnumNumber {
@@ -69,7 +69,7 @@ func (x ProviderType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ProviderType.Descriptor instead.
 func (ProviderType) EnumDescriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{0}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{0}
 }
 
 // ModelCapability enumerates supported upstream capabilities.
@@ -133,11 +133,11 @@ func (x ModelCapability) String() string {
 }
 
 func (ModelCapability) Descriptor() protoreflect.EnumDescriptor {
-	return file_llmgateway_admin_v1_admin_proto_enumTypes[1].Descriptor()
+	return file_proto_llmgateway_admin_v1_admin_proto_enumTypes[1].Descriptor()
 }
 
 func (ModelCapability) Type() protoreflect.EnumType {
-	return &file_llmgateway_admin_v1_admin_proto_enumTypes[1]
+	return &file_proto_llmgateway_admin_v1_admin_proto_enumTypes[1]
 }
 
 func (x ModelCapability) Number() protoreflect.EnumNumber {
@@ -146,7 +146,7 @@ func (x ModelCapability) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ModelCapability.Descriptor instead.
 func (ModelCapability) EnumDescriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{1}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{1}
 }
 
 type IssueTokenRequest struct {
@@ -164,7 +164,7 @@ type IssueTokenRequest struct {
 
 func (x *IssueTokenRequest) Reset() {
 	*x = IssueTokenRequest{}
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[0]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -176,7 +176,7 @@ func (x *IssueTokenRequest) String() string {
 func (*IssueTokenRequest) ProtoMessage() {}
 
 func (x *IssueTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[0]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -189,7 +189,7 @@ func (x *IssueTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IssueTokenRequest.ProtoReflect.Descriptor instead.
 func (*IssueTokenRequest) Descriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{0}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *IssueTokenRequest) GetSubject() string {
@@ -223,7 +223,7 @@ type IssueTokenResponse struct {
 
 func (x *IssueTokenResponse) Reset() {
 	*x = IssueTokenResponse{}
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[1]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -235,7 +235,7 @@ func (x *IssueTokenResponse) String() string {
 func (*IssueTokenResponse) ProtoMessage() {}
 
 func (x *IssueTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[1]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -248,7 +248,7 @@ func (x *IssueTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IssueTokenResponse.ProtoReflect.Descriptor instead.
 func (*IssueTokenResponse) Descriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{1}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *IssueTokenResponse) GetAccessToken() string {
@@ -280,7 +280,7 @@ type ProviderConfig struct {
 
 func (x *ProviderConfig) Reset() {
 	*x = ProviderConfig{}
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[2]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -292,7 +292,7 @@ func (x *ProviderConfig) String() string {
 func (*ProviderConfig) ProtoMessage() {}
 
 func (x *ProviderConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[2]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -305,7 +305,7 @@ func (x *ProviderConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProviderConfig.ProtoReflect.Descriptor instead.
 func (*ProviderConfig) Descriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{2}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ProviderConfig) GetProvider() ProviderType {
@@ -348,7 +348,7 @@ type ProviderConfigView struct {
 
 func (x *ProviderConfigView) Reset() {
 	*x = ProviderConfigView{}
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[3]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -360,7 +360,7 @@ func (x *ProviderConfigView) String() string {
 func (*ProviderConfigView) ProtoMessage() {}
 
 func (x *ProviderConfigView) ProtoReflect() protoreflect.Message {
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[3]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -373,7 +373,7 @@ func (x *ProviderConfigView) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProviderConfigView.ProtoReflect.Descriptor instead.
 func (*ProviderConfigView) Descriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{3}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ProviderConfigView) GetProvider() ProviderType {
@@ -413,7 +413,7 @@ type UpsertProviderConfigRequest struct {
 
 func (x *UpsertProviderConfigRequest) Reset() {
 	*x = UpsertProviderConfigRequest{}
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[4]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -425,7 +425,7 @@ func (x *UpsertProviderConfigRequest) String() string {
 func (*UpsertProviderConfigRequest) ProtoMessage() {}
 
 func (x *UpsertProviderConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[4]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -438,7 +438,7 @@ func (x *UpsertProviderConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpsertProviderConfigRequest.ProtoReflect.Descriptor instead.
 func (*UpsertProviderConfigRequest) Descriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{4}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *UpsertProviderConfigRequest) GetConfig() *ProviderConfig {
@@ -456,7 +456,7 @@ type UpsertProviderConfigResponse struct {
 
 func (x *UpsertProviderConfigResponse) Reset() {
 	*x = UpsertProviderConfigResponse{}
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[5]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -468,7 +468,7 @@ func (x *UpsertProviderConfigResponse) String() string {
 func (*UpsertProviderConfigResponse) ProtoMessage() {}
 
 func (x *UpsertProviderConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[5]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -481,7 +481,7 @@ func (x *UpsertProviderConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpsertProviderConfigResponse.ProtoReflect.Descriptor instead.
 func (*UpsertProviderConfigResponse) Descriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{5}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{5}
 }
 
 type DeleteProviderConfigRequest struct {
@@ -493,7 +493,7 @@ type DeleteProviderConfigRequest struct {
 
 func (x *DeleteProviderConfigRequest) Reset() {
 	*x = DeleteProviderConfigRequest{}
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[6]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -505,7 +505,7 @@ func (x *DeleteProviderConfigRequest) String() string {
 func (*DeleteProviderConfigRequest) ProtoMessage() {}
 
 func (x *DeleteProviderConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[6]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -518,7 +518,7 @@ func (x *DeleteProviderConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteProviderConfigRequest.ProtoReflect.Descriptor instead.
 func (*DeleteProviderConfigRequest) Descriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{6}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DeleteProviderConfigRequest) GetProvider() ProviderType {
@@ -536,7 +536,7 @@ type DeleteProviderConfigResponse struct {
 
 func (x *DeleteProviderConfigResponse) Reset() {
 	*x = DeleteProviderConfigResponse{}
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[7]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -548,7 +548,7 @@ func (x *DeleteProviderConfigResponse) String() string {
 func (*DeleteProviderConfigResponse) ProtoMessage() {}
 
 func (x *DeleteProviderConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[7]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -561,7 +561,7 @@ func (x *DeleteProviderConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteProviderConfigResponse.ProtoReflect.Descriptor instead.
 func (*DeleteProviderConfigResponse) Descriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{7}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{7}
 }
 
 type ListProviderConfigsRequest struct {
@@ -572,7 +572,7 @@ type ListProviderConfigsRequest struct {
 
 func (x *ListProviderConfigsRequest) Reset() {
 	*x = ListProviderConfigsRequest{}
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[8]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -584,7 +584,7 @@ func (x *ListProviderConfigsRequest) String() string {
 func (*ListProviderConfigsRequest) ProtoMessage() {}
 
 func (x *ListProviderConfigsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[8]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -597,7 +597,7 @@ func (x *ListProviderConfigsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProviderConfigsRequest.ProtoReflect.Descriptor instead.
 func (*ListProviderConfigsRequest) Descriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{8}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{8}
 }
 
 type ListProviderConfigsResponse struct {
@@ -609,7 +609,7 @@ type ListProviderConfigsResponse struct {
 
 func (x *ListProviderConfigsResponse) Reset() {
 	*x = ListProviderConfigsResponse{}
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[9]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -621,7 +621,7 @@ func (x *ListProviderConfigsResponse) String() string {
 func (*ListProviderConfigsResponse) ProtoMessage() {}
 
 func (x *ListProviderConfigsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[9]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -634,7 +634,7 @@ func (x *ListProviderConfigsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProviderConfigsResponse.ProtoReflect.Descriptor instead.
 func (*ListProviderConfigsResponse) Descriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{9}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListProviderConfigsResponse) GetConfigs() []*ProviderConfigView {
@@ -661,7 +661,7 @@ type ModelSpec struct {
 
 func (x *ModelSpec) Reset() {
 	*x = ModelSpec{}
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[10]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -673,7 +673,7 @@ func (x *ModelSpec) String() string {
 func (*ModelSpec) ProtoMessage() {}
 
 func (x *ModelSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[10]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -686,7 +686,7 @@ func (x *ModelSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelSpec.ProtoReflect.Descriptor instead.
 func (*ModelSpec) Descriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{10}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ModelSpec) GetId() string {
@@ -740,7 +740,7 @@ type ModelConfig struct {
 
 func (x *ModelConfig) Reset() {
 	*x = ModelConfig{}
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[11]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -752,7 +752,7 @@ func (x *ModelConfig) String() string {
 func (*ModelConfig) ProtoMessage() {}
 
 func (x *ModelConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[11]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -765,7 +765,7 @@ func (x *ModelConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModelConfig.ProtoReflect.Descriptor instead.
 func (*ModelConfig) Descriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{11}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ModelConfig) GetProvider() ProviderType {
@@ -805,7 +805,7 @@ type UpsertModelRequest struct {
 
 func (x *UpsertModelRequest) Reset() {
 	*x = UpsertModelRequest{}
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[12]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -817,7 +817,7 @@ func (x *UpsertModelRequest) String() string {
 func (*UpsertModelRequest) ProtoMessage() {}
 
 func (x *UpsertModelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[12]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -830,7 +830,7 @@ func (x *UpsertModelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpsertModelRequest.ProtoReflect.Descriptor instead.
 func (*UpsertModelRequest) Descriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{12}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *UpsertModelRequest) GetModel() *ModelConfig {
@@ -850,7 +850,7 @@ type UpsertModelResponse struct {
 
 func (x *UpsertModelResponse) Reset() {
 	*x = UpsertModelResponse{}
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[13]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -862,7 +862,7 @@ func (x *UpsertModelResponse) String() string {
 func (*UpsertModelResponse) ProtoMessage() {}
 
 func (x *UpsertModelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[13]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -875,7 +875,7 @@ func (x *UpsertModelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpsertModelResponse.ProtoReflect.Descriptor instead.
 func (*UpsertModelResponse) Descriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{13}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *UpsertModelResponse) GetId() string {
@@ -894,7 +894,7 @@ type DeleteModelRequest struct {
 
 func (x *DeleteModelRequest) Reset() {
 	*x = DeleteModelRequest{}
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[14]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -906,7 +906,7 @@ func (x *DeleteModelRequest) String() string {
 func (*DeleteModelRequest) ProtoMessage() {}
 
 func (x *DeleteModelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[14]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -919,7 +919,7 @@ func (x *DeleteModelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteModelRequest.ProtoReflect.Descriptor instead.
 func (*DeleteModelRequest) Descriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{14}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DeleteModelRequest) GetId() string {
@@ -937,7 +937,7 @@ type DeleteModelResponse struct {
 
 func (x *DeleteModelResponse) Reset() {
 	*x = DeleteModelResponse{}
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[15]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -949,7 +949,7 @@ func (x *DeleteModelResponse) String() string {
 func (*DeleteModelResponse) ProtoMessage() {}
 
 func (x *DeleteModelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[15]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -962,7 +962,7 @@ func (x *DeleteModelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteModelResponse.ProtoReflect.Descriptor instead.
 func (*DeleteModelResponse) Descriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{15}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{15}
 }
 
 type ListModelsRequest struct {
@@ -973,7 +973,7 @@ type ListModelsRequest struct {
 
 func (x *ListModelsRequest) Reset() {
 	*x = ListModelsRequest{}
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[16]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -985,7 +985,7 @@ func (x *ListModelsRequest) String() string {
 func (*ListModelsRequest) ProtoMessage() {}
 
 func (x *ListModelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[16]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -998,7 +998,7 @@ func (x *ListModelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListModelsRequest.ProtoReflect.Descriptor instead.
 func (*ListModelsRequest) Descriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{16}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{16}
 }
 
 type ListModelsResponse struct {
@@ -1010,7 +1010,7 @@ type ListModelsResponse struct {
 
 func (x *ListModelsResponse) Reset() {
 	*x = ListModelsResponse{}
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[17]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1022,7 +1022,7 @@ func (x *ListModelsResponse) String() string {
 func (*ListModelsResponse) ProtoMessage() {}
 
 func (x *ListModelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_llmgateway_admin_v1_admin_proto_msgTypes[17]
+	mi := &file_proto_llmgateway_admin_v1_admin_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1035,7 +1035,7 @@ func (x *ListModelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListModelsResponse.ProtoReflect.Descriptor instead.
 func (*ListModelsResponse) Descriptor() ([]byte, []int) {
-	return file_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{17}
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ListModelsResponse) GetModels() []*ModelSpec {
@@ -1045,11 +1045,11 @@ func (x *ListModelsResponse) GetModels() []*ModelSpec {
 	return nil
 }
 
-var File_llmgateway_admin_v1_admin_proto protoreflect.FileDescriptor
+var File_proto_llmgateway_admin_v1_admin_proto protoreflect.FileDescriptor
 
-const file_llmgateway_admin_v1_admin_proto_rawDesc = "" +
+const file_proto_llmgateway_admin_v1_admin_proto_rawDesc = "" +
 	"\n" +
-	"\x1fllmgateway/admin/v1/admin.proto\x12\x13llmgateway.admin.v1\"z\n" +
+	"%proto/llmgateway/admin/v1/admin.proto\x12\x13llmgateway.admin.v1\"z\n" +
 	"\x11IssueTokenRequest\x12\x18\n" +
 	"\asubject\x18\x01 \x01(\tR\asubject\x12\x1f\n" +
 	"\vttl_seconds\x18\x02 \x01(\x03R\n" +
@@ -1125,20 +1125,20 @@ const file_llmgateway_admin_v1_admin_proto_rawDesc = "" +
 	"ListModels\x12&.llmgateway.admin.v1.ListModelsRequest\x1a'.llmgateway.admin.v1.ListModelsResponseBIZGgithub.com/poly-workshop/llm-gateway/gen/go/llmgateway/admin/v1;adminv1b\x06proto3"
 
 var (
-	file_llmgateway_admin_v1_admin_proto_rawDescOnce sync.Once
-	file_llmgateway_admin_v1_admin_proto_rawDescData []byte
+	file_proto_llmgateway_admin_v1_admin_proto_rawDescOnce sync.Once
+	file_proto_llmgateway_admin_v1_admin_proto_rawDescData []byte
 )
 
-func file_llmgateway_admin_v1_admin_proto_rawDescGZIP() []byte {
-	file_llmgateway_admin_v1_admin_proto_rawDescOnce.Do(func() {
-		file_llmgateway_admin_v1_admin_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_llmgateway_admin_v1_admin_proto_rawDesc), len(file_llmgateway_admin_v1_admin_proto_rawDesc)))
+func file_proto_llmgateway_admin_v1_admin_proto_rawDescGZIP() []byte {
+	file_proto_llmgateway_admin_v1_admin_proto_rawDescOnce.Do(func() {
+		file_proto_llmgateway_admin_v1_admin_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_llmgateway_admin_v1_admin_proto_rawDesc), len(file_proto_llmgateway_admin_v1_admin_proto_rawDesc)))
 	})
-	return file_llmgateway_admin_v1_admin_proto_rawDescData
+	return file_proto_llmgateway_admin_v1_admin_proto_rawDescData
 }
 
-var file_llmgateway_admin_v1_admin_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_llmgateway_admin_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
-var file_llmgateway_admin_v1_admin_proto_goTypes = []any{
+var file_proto_llmgateway_admin_v1_admin_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_proto_llmgateway_admin_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_proto_llmgateway_admin_v1_admin_proto_goTypes = []any{
 	(ProviderType)(0),                    // 0: llmgateway.admin.v1.ProviderType
 	(ModelCapability)(0),                 // 1: llmgateway.admin.v1.ModelCapability
 	(*IssueTokenRequest)(nil),            // 2: llmgateway.admin.v1.IssueTokenRequest
@@ -1160,7 +1160,7 @@ var file_llmgateway_admin_v1_admin_proto_goTypes = []any{
 	(*ListModelsRequest)(nil),            // 18: llmgateway.admin.v1.ListModelsRequest
 	(*ListModelsResponse)(nil),           // 19: llmgateway.admin.v1.ListModelsResponse
 }
-var file_llmgateway_admin_v1_admin_proto_depIdxs = []int32{
+var file_proto_llmgateway_admin_v1_admin_proto_depIdxs = []int32{
 	0,  // 0: llmgateway.admin.v1.ProviderConfig.provider:type_name -> llmgateway.admin.v1.ProviderType
 	0,  // 1: llmgateway.admin.v1.ProviderConfigView.provider:type_name -> llmgateway.admin.v1.ProviderType
 	4,  // 2: llmgateway.admin.v1.UpsertProviderConfigRequest.config:type_name -> llmgateway.admin.v1.ProviderConfig
@@ -1193,27 +1193,27 @@ var file_llmgateway_admin_v1_admin_proto_depIdxs = []int32{
 	0,  // [0:11] is the sub-list for field type_name
 }
 
-func init() { file_llmgateway_admin_v1_admin_proto_init() }
-func file_llmgateway_admin_v1_admin_proto_init() {
-	if File_llmgateway_admin_v1_admin_proto != nil {
+func init() { file_proto_llmgateway_admin_v1_admin_proto_init() }
+func file_proto_llmgateway_admin_v1_admin_proto_init() {
+	if File_proto_llmgateway_admin_v1_admin_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_llmgateway_admin_v1_admin_proto_rawDesc), len(file_llmgateway_admin_v1_admin_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_llmgateway_admin_v1_admin_proto_rawDesc), len(file_proto_llmgateway_admin_v1_admin_proto_rawDesc)),
 			NumEnums:      2,
 			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_llmgateway_admin_v1_admin_proto_goTypes,
-		DependencyIndexes: file_llmgateway_admin_v1_admin_proto_depIdxs,
-		EnumInfos:         file_llmgateway_admin_v1_admin_proto_enumTypes,
-		MessageInfos:      file_llmgateway_admin_v1_admin_proto_msgTypes,
+		GoTypes:           file_proto_llmgateway_admin_v1_admin_proto_goTypes,
+		DependencyIndexes: file_proto_llmgateway_admin_v1_admin_proto_depIdxs,
+		EnumInfos:         file_proto_llmgateway_admin_v1_admin_proto_enumTypes,
+		MessageInfos:      file_proto_llmgateway_admin_v1_admin_proto_msgTypes,
 	}.Build()
-	File_llmgateway_admin_v1_admin_proto = out.File
-	file_llmgateway_admin_v1_admin_proto_goTypes = nil
-	file_llmgateway_admin_v1_admin_proto_depIdxs = nil
+	File_proto_llmgateway_admin_v1_admin_proto = out.File
+	file_proto_llmgateway_admin_v1_admin_proto_goTypes = nil
+	file_proto_llmgateway_admin_v1_admin_proto_depIdxs = nil
 }
