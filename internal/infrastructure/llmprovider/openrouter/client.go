@@ -21,7 +21,8 @@ type Provider struct {
 	baseURL string
 	apiKey  string
 
-	httpClient *http.Client
+	httpClient          *http.Client
+	streamingHTTPClient *http.Client
 }
 
 func NewProvider(baseURL, apiKey string, timeout time.Duration) *Provider {
@@ -37,6 +38,10 @@ func NewProvider(baseURL, apiKey string, timeout time.Duration) *Provider {
 		apiKey:  apiKey,
 		httpClient: &http.Client{
 			Timeout: timeout,
+		},
+		// Streaming client with no timeout to prevent premature stream termination
+		streamingHTTPClient: &http.Client{
+			Timeout: 0,
 		},
 	}
 }
@@ -231,7 +236,7 @@ func (p *Provider) doStreamingRequest(ctx context.Context, url string, body open
 	r.Header.Set("Authorization", "Bearer "+p.apiKey)
 	r.Header.Set("Accept", "text/event-stream")
 
-	resp, err := p.httpClient.Do(r)
+	resp, err := p.streamingHTTPClient.Do(r)
 	if err != nil {
 		return nil, err
 	}

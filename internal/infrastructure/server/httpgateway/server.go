@@ -479,6 +479,14 @@ func (s *Server) handleStreamChatCompletion(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusOK)
 	// Stream chunks
 	for {
+		select {
+		case <-r.Context().Done():
+			// Client disconnected, stop streaming
+			slog.Debug("client disconnected during streaming")
+			return
+		default:
+		}
+
 		chunk, err := stream.Recv()
 		if err != nil {
 			if err == io.EOF {
