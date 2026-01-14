@@ -513,6 +513,7 @@ func (s *Server) handleStreamChatCompletion(w http.ResponseWriter, r *http.Reque
 
 		data, err := json.Marshal(chunkResp)
 		if err != nil {
+			slog.Error("failed to marshal chunk", "error", err)
 			return
 		}
 
