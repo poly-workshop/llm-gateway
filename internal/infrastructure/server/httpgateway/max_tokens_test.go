@@ -105,10 +105,10 @@ func TestMaxTokens_ExceedsLimit(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected error message in response")
 	}
-	// The error message should contain both the requested tokens and the limit
-	expectedMsg := "max_tokens (101) exceeds model limit (100)"
-	if msg != expectedMsg && msg != "invalid argument: "+expectedMsg {
-		t.Errorf("unexpected error message: %s", msg)
+	// The error message may be wrapped with "invalid argument: " prefix
+	expectedCore := "max_tokens (101) exceeds model limit (100)"
+	if msg != expectedCore && msg != "invalid argument: "+expectedCore {
+		t.Errorf("error message should contain '%s', got: %s", expectedCore, msg)
 	}
 }
 
@@ -212,7 +212,7 @@ func TestMaxTokens_MissingMaxTokens(t *testing.T) {
 	appSvc := llmgateway.NewService(providers, models, nil)
 	srv := &Server{app: appSvc}
 
-	// Test: Request without max_tokens (should use provider's default)
+	// Test: Request without max_tokens (0 means use provider's default)
 	reqBody := CreateChatCompletionRequest{
 		Model: "test/model-limited",
 		Messages: []ChatMessageIn{
@@ -221,7 +221,7 @@ func TestMaxTokens_MissingMaxTokens(t *testing.T) {
 				Content: json.RawMessage(`"Hello"`),
 			},
 		},
-		// MaxTokens: 0 (not set)
+		MaxTokens: 0, // 0 = use provider default, not enforced by gateway
 	}
 	body, _ := json.Marshal(reqBody)
 	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(body))
