@@ -395,12 +395,7 @@ func (s *Server) handleGetGeneration(w http.ResponseWriter, r *http.Request, id 
 func writeErr(w http.ResponseWriter, err error) {
 	if errors.Is(err, llm.ErrInvalidArgument) {
 		// Unwrap the error message to provide clean API responses
-		msg := err.Error()
-		// Remove "invalid argument: " prefix if present
-		const prefix = "invalid argument: "
-		if len(msg) > len(prefix) && msg[:len(prefix)] == prefix {
-			msg = msg[len(prefix):]
-		}
+		msg := strings.TrimPrefix(err.Error(), "invalid argument: ")
 		writeJSONError(w, http.StatusBadRequest, msg)
 		return
 	}
