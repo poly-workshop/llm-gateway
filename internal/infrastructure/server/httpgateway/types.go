@@ -64,6 +64,7 @@ type CreateChatCompletionRequest struct {
 	Messages    []ChatMessageIn `json:"messages"`
 	Temperature float64         `json:"temperature,omitempty"`
 	MaxTokens   uint32          `json:"max_tokens,omitempty"`
+	Stream      bool            `json:"stream,omitempty"`
 	User        string          `json:"user,omitempty"`
 }
 

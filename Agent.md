@@ -129,7 +129,9 @@ All HTTP endpoints are exposed via gRPC-Gateway annotations on `LLMGatewayServic
   - `GET /v1/models/{id}` → `GetModel`
 - **Chat Completions**
   - `POST /v1/chat/completions` → `CreateChatCompletion`
-  - `POST /v1/chat/completions:stream` → `CreateChatCompletionStream`（server-streaming）
+    - Supports `stream=true` parameter for streaming responses (OpenAI-compatible SSE format)
+    - Note: Streaming is not yet implemented and returns 501 Not Implemented
+  - ~~`POST /v1/chat/completions:stream`~~ → **DEPRECATED and removed** (returns 404)
 - **Embeddings**
   - `POST /v1/embeddings` → `CreateEmbeddings`
 - **Generation (usage query)**
@@ -149,7 +151,7 @@ Supported capabilities:
 
 - **Chat Completions (non-stream)**: implemented and routed via `CreateChatCompletion`
 - **Embeddings**: implemented and routed via `CreateEmbeddings`
-- **Chat Completions (stream)**: still **unimplemented** (`CreateChatCompletionStream`)
+- **Chat Completions (stream)**: still **unimplemented** (use `stream=true` on standard endpoint)
 
 Config:
 
@@ -165,7 +167,7 @@ Supported capabilities:
 
 - **Chat Completions (non-stream)**: implemented and routed via `CreateChatCompletion`
 - **Embeddings**: implemented and routed via `CreateEmbeddings`
-- **Chat Completions (stream)**: still **unimplemented** (`CreateChatCompletionStream`)
+- **Chat Completions (stream)**: still **unimplemented** (use `stream=true` on standard endpoint)
 
 Config:
 
