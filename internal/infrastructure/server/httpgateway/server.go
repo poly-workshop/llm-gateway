@@ -465,17 +465,18 @@ func (s *Server) handleStreamChatCompletion(w http.ResponseWriter, r *http.Reque
 	}
 	defer stream.Close()
 
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		slog.Error("response writer does not implement http.Flusher; streaming not supported")
+		writeJSONError(w, http.StatusInternalServerError, "streaming not supported by server")
+		return
+	}
+
 	// Set SSE headers
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	w.WriteHeader(http.StatusOK)
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		return
-	}
-
 	// Stream chunks
 	for {
 		chunk, err := stream.Recv()
