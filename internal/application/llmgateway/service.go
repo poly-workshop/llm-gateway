@@ -193,7 +193,17 @@ func (s *Service) StreamChatCompletion(ctx context.Context, req llm.ChatCompleti
 		return nil, err
 	}
 	req.Model = upstreamModel
-	return p.StreamChatCompletion(ctx, req)
+	stream, err := p.StreamChatCompletion(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Wrap stream to capture generation data for tracking
+	if s.generations != nil {
+		return newTrackingStream(ctx, stream, routedModel, s.generations), nil
+	}
+
+	return stream, nil
 }
 
 func (s *Service) resolveProviderAndUpstreamModel(routedModel string) (Provider, string, error) {
@@ -257,4 +267,70 @@ func (s *Service) buildGenerationFromEmbeddings(routedModel string, resp llm.Emb
 		Created: 0, // Embeddings response doesn't include created timestamp.
 		Usage:   usage,
 	}
+}
+
+// trackingStream wraps a ChatCompletionStream to capture generation data.
+type trackingStream struct {
+	ctx          context.Context
+	underlying   llm.ChatCompletionStream
+	routedModel  string
+	generations  GenerationRepository
+	lastChunk    *llm.ChatCompletionChunk
+	streamClosed bool
+}
+
+func newTrackingStream(ctx context.Context, underlying llm.ChatCompletionStream, routedModel string, generations GenerationRepository) *trackingStream {
+	return &trackingStream{
+		ctx:         ctx,
+		underlying:  underlying,
+		routedModel: routedModel,
+		generations: generations,
+	}
+}
+
+func (t *trackingStream) Recv() (llm.ChatCompletionChunk, error) {
+	chunk, err := t.underlying.Recv()
+	if err != nil {
+		// On EOF or error, try to save generation record if we have data
+		if !t.streamClosed && t.lastChunk != nil && t.lastChunk.Usage != nil {
+			t.saveGeneration()
+		}
+		t.streamClosed = true
+		return chunk, err
+	}
+
+	// Keep track of the last chunk (which may contain usage info)
+	t.lastChunk = &chunk
+
+	// If this chunk has usage info, it's likely the final data chunk
+	if chunk.Usage != nil {
+		t.saveGeneration()
+	}
+
+	return chunk, nil
+}
+
+func (t *trackingStream) Close() error {
+	// Try to save generation record before closing if we haven't already
+	if !t.streamClosed && t.lastChunk != nil && t.lastChunk.Usage != nil {
+		t.saveGeneration()
+	}
+	t.streamClosed = true
+	return t.underlying.Close()
+}
+
+func (t *trackingStream) saveGeneration() {
+	if t.lastChunk == nil || t.lastChunk.Usage == nil {
+		return
+	}
+
+	gen := llm.Generation{
+		ID:      t.lastChunk.ID,
+		Model:   t.routedModel,
+		Created: t.lastChunk.Created,
+		Usage:   *t.lastChunk.Usage,
+	}
+
+	// Best effort, don't fail the stream if generation save fails
+	_ = t.generations.Save(t.ctx, gen)
 }

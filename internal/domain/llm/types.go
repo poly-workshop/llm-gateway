@@ -118,6 +118,7 @@ type ChatCompletionChunk struct {
 	Created int64
 	Model   string
 	Choices []ChatCompletionChunkChoice
+	Usage   *TokenUsage // Optional usage information, typically in the final chunk
 }
 
 // ChatCompletionStream represents a stream of chat completion chunks.

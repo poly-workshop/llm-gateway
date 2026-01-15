@@ -130,6 +130,7 @@ type ChatCompletionChunkResponse struct {
 	Created int64                          `json:"created"`
 	Model   string                         `json:"model"`
 	Choices []ChatCompletionChunkChoiceOut `json:"choices"`
+	Usage   *TokenUsage                    `json:"usage,omitempty"` // Optional usage, typically in final chunk
 }
 
 func (r CreateChatCompletionRequest) toDomainMessages() ([]llm.ChatMessage, error) {

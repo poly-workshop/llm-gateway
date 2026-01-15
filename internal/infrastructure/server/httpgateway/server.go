@@ -516,12 +516,22 @@ func (s *Server) handleStreamChatCompletion(w http.ResponseWriter, r *http.Reque
 			})
 		}
 
+		var usage *TokenUsage
+		if chunk.Usage != nil {
+			usage = &TokenUsage{
+				PromptTokens:     chunk.Usage.PromptTokens,
+				CompletionTokens: chunk.Usage.CompletionTokens,
+				TotalTokens:      chunk.Usage.TotalTokens,
+			}
+		}
+
 		chunkResp := ChatCompletionChunkResponse{
 			ID:      chunk.ID,
 			Object:  chunk.Object,
 			Created: chunk.Created,
 			Model:   chunk.Model,
 			Choices: choices,
+			Usage:   usage,
 		}
 
 		data, err := json.Marshal(chunkResp)

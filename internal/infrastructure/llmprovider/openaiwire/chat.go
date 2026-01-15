@@ -92,6 +92,7 @@ type ChatCompletionChunk struct {
 	Created int64         `json:"created"`
 	Model   string        `json:"model"`
 	Choices []ChunkChoice `json:"choices"`
+	Usage   *Usage        `json:"usage,omitempty"` // Optional usage, typically in final chunk
 }
 
 // ConvertDomainMessages converts domain ChatMessages to openaiwire Messages.
@@ -173,12 +174,22 @@ func (s *sseStream) Recv() (llm.ChatCompletionChunk, error) {
 			})
 		}
 
+		var usage *llm.TokenUsage
+		if chunk.Usage != nil {
+			usage = &llm.TokenUsage{
+				PromptTokens:     chunk.Usage.PromptTokens,
+				CompletionTokens: chunk.Usage.CompletionTokens,
+				TotalTokens:      chunk.Usage.TotalTokens,
+			}
+		}
+
 		return llm.ChatCompletionChunk{
 			ID:      chunk.ID,
 			Object:  chunk.Object,
 			Created: chunk.Created,
 			Model:   chunk.Model,
 			Choices: choices,
+			Usage:   usage,
 		}, nil
 	}
 }
