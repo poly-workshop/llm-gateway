@@ -19,7 +19,8 @@ type Provider struct {
 	baseURL string
 	apiKey  string
 
-	httpClient *http.Client
+	httpClient          *http.Client
+	streamingHTTPClient *http.Client
 }
 
 func NewProvider(baseURL, apiKey string, timeout time.Duration) *Provider {
@@ -36,30 +37,15 @@ func NewProvider(baseURL, apiKey string, timeout time.Duration) *Provider {
 		httpClient: &http.Client{
 			Timeout: timeout,
 		},
+		// Streaming client with no timeout to prevent premature stream termination
+		streamingHTTPClient: &http.Client{
+			Timeout: 0,
+		},
 	}
 }
 
 func (p *Provider) CreateChatCompletion(ctx context.Context, req llm.ChatCompletionRequest) (llm.ChatCompletionResponse, error) {
-	msgs := make([]openaiwire.Message, 0, len(req.Messages))
-	for _, m := range req.Messages {
-		var content any
-		if len(m.ContentParts) > 0 {
-			// Multimodal message with content parts (for vision models).
-			parts := make([]openaiwire.ContentPart, 0, len(m.ContentParts))
-			for _, cp := range m.ContentParts {
-				part := openaiwire.ContentPart{Type: cp.Type, Text: cp.Text}
-				if cp.ImageURL != nil {
-					part.ImageURL = &openaiwire.ImageURL{URL: cp.ImageURL.URL, Detail: cp.ImageURL.Detail}
-				}
-				parts = append(parts, part)
-			}
-			content = parts
-		} else {
-			// Simple text message.
-			content = m.Content
-		}
-		msgs = append(msgs, openaiwire.Message{Role: m.Role, Content: content, Name: m.Name})
-	}
+	msgs := openaiwire.ConvertDomainMessages(req.Messages)
 
 	body := openaiwire.ChatCompletionRequest{
 		Model:       req.Model,
@@ -98,6 +84,20 @@ func (p *Provider) CreateChatCompletion(ctx context.Context, req llm.ChatComplet
 			TotalTokens:      out.Usage.TotalTokens,
 		},
 	}, nil
+}
+
+func (p *Provider) StreamChatCompletion(ctx context.Context, req llm.ChatCompletionRequest) (llm.ChatCompletionStream, error) {
+	msgs := openaiwire.ConvertDomainMessages(req.Messages)
+
+	body := openaiwire.ChatCompletionRequest{
+		Model:       req.Model,
+		Messages:    msgs,
+		Temperature: req.Temperature,
+		MaxTokens:   req.MaxTokens,
+		User:        req.User,
+	}
+
+	return p.doStreamingRequest(ctx, p.baseURL+"/chat/completions", body)
 }
 
 func (p *Provider) CreateEmbeddings(ctx context.Context, req llm.EmbeddingsRequest) (llm.EmbeddingsResponse, error) {
@@ -162,4 +162,57 @@ func (p *Provider) doJSON(ctx context.Context, method, url string, in any, out a
 		return fmt.Errorf("decode response: %w", err)
 	}
 	return nil
+}
+
+func (p *Provider) doStreamingRequest(ctx context.Context, url string, body openaiwire.ChatCompletionRequest) (llm.ChatCompletionStream, error) {
+	if p.apiKey == "" {
+		return nil, fmt.Errorf("openrouter api key is empty")
+	}
+	
+	// Set stream to true
+	bodyMap := map[string]any{
+		"model":       body.Model,
+		"messages":    body.Messages,
+		"stream":      true,
+		"temperature": body.Temperature,
+	}
+	if body.MaxTokens > 0 {
+		bodyMap["max_tokens"] = body.MaxTokens
+	}
+	if body.User != "" {
+		bodyMap["user"] = body.User
+	}
+
+	b, err := json.Marshal(bodyMap)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+	if err != nil {
+		return nil, err
+	}
+	r.Header.Set("Content-Type", "application/json")
+	r.Header.Set("Authorization", "Bearer "+p.apiKey)
+	r.Header.Set("Accept", "text/event-stream")
+
+	resp, err := p.streamingHTTPClient.Do(r)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode >= 400 {
+		defer resp.Body.Close()
+		raw, _ := io.ReadAll(resp.Body)
+		msg := strings.TrimSpace(string(raw))
+		if msg == "" {
+			msg = resp.Status
+		}
+		if resp.StatusCode == http.StatusBadRequest {
+			return nil, llm.InvalidArgument(msg)
+		}
+		return nil, fmt.Errorf("openrouter http %d: %s", resp.StatusCode, msg)
+	}
+
+	return openaiwire.NewSSEStream(resp), nil
 }

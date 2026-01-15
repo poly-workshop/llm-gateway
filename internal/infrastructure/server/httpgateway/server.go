@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -273,7 +274,7 @@ func (s *Server) handleCreateChatCompletion(w http.ResponseWriter, r *http.Reque
 	
 	// Check if streaming is requested
 	if req.Stream {
-		writeJSONError(w, http.StatusNotImplemented, "streaming not yet implemented")
+		s.handleStreamChatCompletion(w, r, req)
 		return
 	}
 	
@@ -427,4 +428,124 @@ func writeJSONError(w http.ResponseWriter, status int, msg string) {
 			"type":    errorType,
 		},
 	})
+}
+
+func (s *Server) handleStreamChatCompletion(w http.ResponseWriter, r *http.Request, req CreateChatCompletionRequest) {
+	// Check model access
+	if ids := auth.AllowedModelsFromContext(r.Context()); len(ids) > 0 {
+		allowed := make(map[string]struct{}, len(ids))
+		for _, mid := range ids {
+			if mid == "" {
+				continue
+			}
+			allowed[mid] = struct{}{}
+		}
+		if _, ok := allowed[req.Model]; !ok {
+			writeJSONError(w, http.StatusForbidden, "model not allowed")
+			return
+		}
+	}
+
+	msgs, err := req.toDomainMessages()
+	if err != nil {
+		writeJSONError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	stream, err := s.app.StreamChatCompletion(r.Context(), llm.ChatCompletionRequest{
+		Model:       req.Model,
+		Messages:    msgs,
+		Temperature: req.Temperature,
+		MaxTokens:   req.MaxTokens,
+		User:        req.User,
+	})
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	defer stream.Close()
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		slog.Error("response writer does not implement http.Flusher; streaming not supported")
+		writeJSONError(w, http.StatusInternalServerError, "streaming not supported by server")
+		return
+	}
+
+	// Set SSE headers
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.WriteHeader(http.StatusOK)
+	// Stream chunks
+	for {
+		select {
+		case <-r.Context().Done():
+			// Client disconnected, stop streaming
+			slog.Debug("client disconnected during streaming")
+			return
+		default:
+		}
+
+		chunk, err := stream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				// Send [DONE] message
+				fmt.Fprintf(w, "data: [DONE]\n\n")
+				flusher.Flush()
+				return
+			}
+			// Log error and send SSE error event, then close stream
+			slog.Error("streaming error", "error", err)
+			if errMsg, marshalErr := json.Marshal(map[string]string{"error": "streaming error"}); marshalErr == nil {
+				fmt.Fprintf(w, "event: error\ndata: %s\n\n", errMsg)
+				flusher.Flush()
+			}
+			return
+		}
+
+		choices := make([]ChatCompletionChunkChoiceOut, 0, len(chunk.Choices))
+		for _, c := range chunk.Choices {
+			choices = append(choices, ChatCompletionChunkChoiceOut{
+				Index: c.Index,
+				Delta: ChatCompletionChunkDelta{
+					Role:    c.Delta.Role,
+					Content: c.Delta.Content,
+				},
+				FinishReason: c.FinishReason,
+			})
+		}
+
+		var usage *TokenUsage
+		if chunk.Usage != nil {
+			usage = &TokenUsage{
+				PromptTokens:     chunk.Usage.PromptTokens,
+				CompletionTokens: chunk.Usage.CompletionTokens,
+				TotalTokens:      chunk.Usage.TotalTokens,
+			}
+		}
+
+		chunkResp := ChatCompletionChunkResponse{
+			ID:      chunk.ID,
+			Object:  chunk.Object,
+			Created: chunk.Created,
+			Model:   chunk.Model,
+			Choices: choices,
+			Usage:   usage,
+		}
+
+		data, err := json.Marshal(chunkResp)
+		if err != nil {
+			slog.Error("failed to marshal chunk", "error", err)
+			// Send error event to client before terminating
+			if errMsg, marshalErr := json.Marshal(map[string]string{"error": "internal error marshaling chunk"}); marshalErr == nil {
+				fmt.Fprintf(w, "event: error\ndata: %s\n\n", errMsg)
+				flusher.Flush()
+			}
+			return
+		}
+
+		fmt.Fprintf(w, "data: %s\n\n", data)
+		flusher.Flush()
+	}
 }

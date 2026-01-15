@@ -1,5 +1,16 @@
 package openaiwire
 
+import (
+	"bufio"
+	"encoding/json"
+	"io"
+	"log/slog"
+	"net/http"
+	"strings"
+
+	"github.com/poly-workshop/llm-gateway/internal/domain/llm"
+)
+
 // ImageURL represents an image URL with optional detail level for vision models.
 type ImageURL struct {
 	URL    string `json:"url"`
@@ -59,4 +70,130 @@ type ChatCompletionResponse struct {
 	Model   string   `json:"model"`
 	Choices []Choice `json:"choices"`
 	Usage   Usage    `json:"usage"`
+}
+
+// DeltaMessage represents an incremental message in a streaming chunk.
+type DeltaMessage struct {
+	Role    string `json:"role,omitempty"`
+	Content string `json:"content,omitempty"`
+}
+
+// ChunkChoice represents a single choice in a streaming chunk.
+type ChunkChoice struct {
+	Index        uint32       `json:"index"`
+	Delta        DeltaMessage `json:"delta"`
+	FinishReason string       `json:"finish_reason,omitempty"`
+}
+
+// ChatCompletionChunk represents a chunk in the streaming response.
+type ChatCompletionChunk struct {
+	ID      string        `json:"id"`
+	Object  string        `json:"object"`
+	Created int64         `json:"created"`
+	Model   string        `json:"model"`
+	Choices []ChunkChoice `json:"choices"`
+	Usage   *Usage        `json:"usage,omitempty"` // Optional usage, typically in final chunk
+}
+
+// ConvertDomainMessages converts domain ChatMessages to openaiwire Messages.
+// This handles both simple text messages and multimodal messages with content parts.
+func ConvertDomainMessages(domainMessages []llm.ChatMessage) []Message {
+	msgs := make([]Message, 0, len(domainMessages))
+	for _, m := range domainMessages {
+		var content any
+		if len(m.ContentParts) > 0 {
+			// Multimodal message with content parts (for vision models).
+			parts := make([]ContentPart, 0, len(m.ContentParts))
+			for _, cp := range m.ContentParts {
+				part := ContentPart{Type: cp.Type, Text: cp.Text}
+				if cp.ImageURL != nil {
+					part.ImageURL = &ImageURL{URL: cp.ImageURL.URL, Detail: cp.ImageURL.Detail}
+				}
+				parts = append(parts, part)
+			}
+			content = parts
+		} else {
+			// Simple text message.
+			content = m.Content
+		}
+		msgs = append(msgs, Message{Role: m.Role, Content: content, Name: m.Name})
+	}
+	return msgs
+}
+
+// NewSSEStream creates a new SSE stream from an HTTP response.
+// It parses Server-Sent Events and converts them to domain ChatCompletionChunk objects.
+func NewSSEStream(resp *http.Response) llm.ChatCompletionStream {
+	return &sseStream{
+		resp:   resp,
+		reader: bufio.NewReader(resp.Body),
+	}
+}
+
+type sseStream struct {
+	resp   *http.Response
+	reader *bufio.Reader
+}
+
+func (s *sseStream) Recv() (llm.ChatCompletionChunk, error) {
+	for {
+		line, err := s.reader.ReadString('\n')
+		if err != nil {
+			return llm.ChatCompletionChunk{}, err
+		}
+
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+
+		data := strings.TrimPrefix(line, "data: ")
+		if data == "[DONE]" {
+			return llm.ChatCompletionChunk{}, io.EOF
+		}
+
+		var chunk ChatCompletionChunk
+		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+			slog.Warn("skipping malformed chunk", "error", err, "data", data)
+			continue // Skip malformed chunks
+		}
+
+		choices := make([]llm.ChatCompletionChunkChoice, 0, len(chunk.Choices))
+		for _, c := range chunk.Choices {
+			choices = append(choices, llm.ChatCompletionChunkChoice{
+				Index: c.Index,
+				Delta: llm.ChatMessageDelta{
+					Role:    c.Delta.Role,
+					Content: c.Delta.Content,
+				},
+				FinishReason: c.FinishReason,
+			})
+		}
+
+		var usage *llm.TokenUsage
+		if chunk.Usage != nil {
+			usage = &llm.TokenUsage{
+				PromptTokens:     chunk.Usage.PromptTokens,
+				CompletionTokens: chunk.Usage.CompletionTokens,
+				TotalTokens:      chunk.Usage.TotalTokens,
+			}
+		}
+
+		return llm.ChatCompletionChunk{
+			ID:      chunk.ID,
+			Object:  chunk.Object,
+			Created: chunk.Created,
+			Model:   chunk.Model,
+			Choices: choices,
+			Usage:   usage,
+		}, nil
+	}
+}
+
+func (s *sseStream) Close() error {
+	return s.resp.Body.Close()
 }
