@@ -4,6 +4,46 @@ An OpenRouter-like LLM Gateway exposed via **HTTP (gRPC-Gateway HandlerServer)**
 
 Project implementation notes and AI/Agent summaries are maintained in `Agent.md`.
 
+## Project Positioning
+
+**LLM Gateway** is a lightweight **L1 data-plane** service providing OpenAI-compatible HTTP endpoints for multi-provider LLM access. It serves as a clean protocol adapter between clients and upstream LLM providers (DashScope, OpenRouter, etc.), focusing on **minimal intrusion**, **high availability**, and **strong isolation**.
+
+### Core Capabilities
+
+- **Protocol Compatibility**: Full OpenAI-compatible API (chat completions, embeddings, model listing) with support for streaming (SSE) and tool calling
+- **Multi-Provider Routing**: Dynamic provider selection via model ID prefix (e.g., `dashscope/qwen-turbo`, `openrouter/openai/gpt-4o`)
+- **Clean Architecture**: Strict layering (domain → application → infrastructure) for maintainability and testability
+- **Rate Limiting & Quota Control**: Per-model `max_output_tokens` enforcement to prevent excessive resource usage
+- **Observability**: Request logging, metrics, and health checks (`/livez`, `/readyz`)
+- **Low Latency**: Direct gRPC-Gateway HandlerServer (no additional proxy hop), stateless horizontal scaling
+
+### Design Goals
+
+- **High Availability**: Stateless design with shared backend storage (GORM/MongoDB) for dynamic configuration
+- **Strong Isolation**: Separate HTTP data-plane and gRPC admin control-plane binaries
+- **Maintainability**: Clear separation of concerns, minimal dependencies, proto-driven API contracts
+
+### Non-Goals (L2/L3 Platform Features)
+
+LLM Gateway intentionally **does not** provide:
+
+- **Agent Orchestration**: Multi-step agent workflows, planning, or task decomposition
+- **Long-Term Generation Storage**: Conversation history queries or audit trails (generation queries are ephemeral)
+- **Complex Business Auditing**: Billing, cost allocation, or enterprise compliance features
+- **Fine-Tuning or Training**: Model lifecycle management beyond routing
+
+These capabilities belong to higher-level platform layers that consume LLM Gateway as a foundational service.
+
+### Comparison to Similar Projects
+
+| Project | Focus | Key Difference |
+|---------|-------|----------------|
+| **LiteLLM** | Python-based unified LLM API with extensive provider support and proxy features | LLM Gateway is Go-based, emphasizes clean architecture and gRPC-first design, lighter weight |
+| **Portkey** | Full-featured AI gateway with observability, caching, and guardrails | LLM Gateway focuses on core protocol adaptation and routing, leaving advanced features to L2/L3 layers |
+| **OpenRouter** | Hosted multi-provider LLM service | LLM Gateway is self-hosted, providing OpenRouter-like routing with full infrastructure control |
+
+LLM Gateway is designed for teams that need a **simple, self-hosted L1 routing layer** with strong architectural boundaries, not a full-featured AI platform.
+
 ## Run
 
 This repo provides two binaries:
