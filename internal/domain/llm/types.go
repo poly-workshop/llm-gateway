@@ -26,6 +26,32 @@ type ContentPart struct {
 	ImageURL *ImageURL
 }
 
+// FunctionCall represents a function call made by the assistant.
+type FunctionCall struct {
+	Name      string
+	Arguments string // JSON-encoded arguments
+}
+
+// ToolCall represents a tool call made by the assistant.
+type ToolCall struct {
+	ID       string
+	Type     string // "function"
+	Function FunctionCall
+}
+
+// ToolFunction defines a function that can be called.
+type ToolFunction struct {
+	Name        string
+	Description string
+	Parameters  any // JSON schema object
+}
+
+// Tool represents a tool that can be used by the model.
+type Tool struct {
+	Type     string // "function"
+	Function ToolFunction
+}
+
 // OpenAI-style chat message.
 // Supports both simple text content and multimodal content (text + images).
 type ChatMessage struct {
@@ -36,6 +62,10 @@ type ChatMessage struct {
 	// If provided, this takes precedence over the Content field.
 	ContentParts []ContentPart
 	Name         string
+	// Tool calls made by the assistant (for tool use).
+	ToolCalls []ToolCall
+	// Tool call ID (for tool response messages).
+	ToolCallID string
 }
 
 type TokenUsage struct {
@@ -59,6 +89,15 @@ type ChatCompletionRequest struct {
 	Temperature float64
 	MaxTokens   uint32
 	User        string
+
+	// Tools available for the model to call.
+	Tools []Tool
+	// Controls which (if any) tool is called by the model.
+	// "none" means the model will not call any tool and instead generates a message.
+	// "auto" means the model can pick between generating a message or calling one or more tools.
+	// "required" means the model must call one or more tools.
+	// Specifying a particular tool via {"type": "function", "function": {"name": "my_function"}} forces the model to call that tool.
+	ToolChoice any
 }
 
 type ChatCompletionResponse struct {
@@ -98,10 +137,25 @@ type Generation struct {
 	Usage   TokenUsage
 }
 
+// ToolCallDelta represents incremental tool call data in a streaming chunk.
+type ToolCallDelta struct {
+	Index    uint32
+	ID       string
+	Type     string
+	Function *FunctionCallDelta
+}
+
+// FunctionCallDelta represents incremental function call data.
+type FunctionCallDelta struct {
+	Name      string
+	Arguments string
+}
+
 // ChatMessageDelta represents incremental content in a streaming chunk.
 type ChatMessageDelta struct {
-	Role    string
-	Content string
+	Role      string
+	Content   string
+	ToolCalls []ToolCallDelta
 }
 
 // ChatCompletionChunkChoice represents a single choice in a streaming chunk.

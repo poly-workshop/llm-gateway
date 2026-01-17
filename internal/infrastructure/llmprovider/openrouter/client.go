@@ -47,12 +47,30 @@ func NewProvider(baseURL, apiKey string, timeout time.Duration) *Provider {
 func (p *Provider) CreateChatCompletion(ctx context.Context, req llm.ChatCompletionRequest) (llm.ChatCompletionResponse, error) {
 	msgs := openaiwire.ConvertDomainMessages(req.Messages)
 
+	// Convert tools
+	var tools []openaiwire.Tool
+	if len(req.Tools) > 0 {
+		tools = make([]openaiwire.Tool, 0, len(req.Tools))
+		for _, t := range req.Tools {
+			tools = append(tools, openaiwire.Tool{
+				Type: t.Type,
+				Function: openaiwire.ToolFunction{
+					Name:        t.Function.Name,
+					Description: t.Function.Description,
+					Parameters:  t.Function.Parameters,
+				},
+			})
+		}
+	}
+
 	body := openaiwire.ChatCompletionRequest{
 		Model:       req.Model,
 		Messages:    msgs,
 		Temperature: req.Temperature,
 		MaxTokens:   req.MaxTokens,
 		User:        req.User,
+		Tools:       tools,
+		ToolChoice:  req.ToolChoice,
 	}
 
 	var out openaiwire.ChatCompletionResponse
@@ -62,13 +80,30 @@ func (p *Provider) CreateChatCompletion(ctx context.Context, req llm.ChatComplet
 
 	choices := make([]llm.ChatCompletionChoice, 0, len(out.Choices))
 	for _, c := range out.Choices {
+		msg := llm.ChatMessage{
+			Role:    c.Message.Role,
+			Content: c.Message.Content,
+			Name:    c.Message.Name,
+		}
+		
+		// Convert tool calls from response
+		if len(c.Message.ToolCalls) > 0 {
+			msg.ToolCalls = make([]llm.ToolCall, 0, len(c.Message.ToolCalls))
+			for _, tc := range c.Message.ToolCalls {
+				msg.ToolCalls = append(msg.ToolCalls, llm.ToolCall{
+					ID:   tc.ID,
+					Type: tc.Type,
+					Function: llm.FunctionCall{
+						Name:      tc.Function.Name,
+						Arguments: tc.Function.Arguments,
+					},
+				})
+			}
+		}
+		
 		choices = append(choices, llm.ChatCompletionChoice{
-			Index: c.Index,
-			Message: llm.ChatMessage{
-				Role:    c.Message.Role,
-				Content: c.Message.Content,
-				Name:    c.Message.Name,
-			},
+			Index:        c.Index,
+			Message:      msg,
 			FinishReason: c.FinishReason,
 		})
 	}
@@ -89,12 +124,30 @@ func (p *Provider) CreateChatCompletion(ctx context.Context, req llm.ChatComplet
 func (p *Provider) StreamChatCompletion(ctx context.Context, req llm.ChatCompletionRequest) (llm.ChatCompletionStream, error) {
 	msgs := openaiwire.ConvertDomainMessages(req.Messages)
 
+	// Convert tools
+	var tools []openaiwire.Tool
+	if len(req.Tools) > 0 {
+		tools = make([]openaiwire.Tool, 0, len(req.Tools))
+		for _, t := range req.Tools {
+			tools = append(tools, openaiwire.Tool{
+				Type: t.Type,
+				Function: openaiwire.ToolFunction{
+					Name:        t.Function.Name,
+					Description: t.Function.Description,
+					Parameters:  t.Function.Parameters,
+				},
+			})
+		}
+	}
+
 	body := openaiwire.ChatCompletionRequest{
 		Model:       req.Model,
 		Messages:    msgs,
 		Temperature: req.Temperature,
 		MaxTokens:   req.MaxTokens,
 		User:        req.User,
+		Tools:       tools,
+		ToolChoice:  req.ToolChoice,
 	}
 
 	return p.doStreamingRequest(ctx, p.baseURL+"/chat/completions", body)
@@ -181,6 +234,12 @@ func (p *Provider) doStreamingRequest(ctx context.Context, url string, body open
 	}
 	if body.User != "" {
 		bodyMap["user"] = body.User
+	}
+	if len(body.Tools) > 0 {
+		bodyMap["tools"] = body.Tools
+	}
+	if body.ToolChoice != nil {
+		bodyMap["tool_choice"] = body.ToolChoice
 	}
 
 	b, err := json.Marshal(bodyMap)

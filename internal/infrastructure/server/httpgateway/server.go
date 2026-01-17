@@ -298,12 +298,30 @@ func (s *Server) handleCreateChatCompletion(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// Convert tools
+	var tools []llm.Tool
+	if len(req.Tools) > 0 {
+		tools = make([]llm.Tool, 0, len(req.Tools))
+		for _, t := range req.Tools {
+			tools = append(tools, llm.Tool{
+				Type: t.Type,
+				Function: llm.ToolFunction{
+					Name:        t.Function.Name,
+					Description: t.Function.Description,
+					Parameters:  t.Function.Parameters,
+				},
+			})
+		}
+	}
+
 	res, err := s.app.CreateChatCompletion(r.Context(), llm.ChatCompletionRequest{
 		Model:       req.Model,
 		Messages:    msgs,
 		Temperature: req.Temperature,
 		MaxTokens:   req.MaxTokens,
 		User:        req.User,
+		Tools:       tools,
+		ToolChoice:  req.ToolChoice,
 	})
 	if err != nil {
 		writeErr(w, err)
@@ -312,13 +330,30 @@ func (s *Server) handleCreateChatCompletion(w http.ResponseWriter, r *http.Reque
 
 	choices := make([]ChatCompletionChoice, 0, len(res.Choices))
 	for _, c := range res.Choices {
+		msgOut := ChatMessageOut{
+			Role:    c.Message.Role,
+			Content: c.Message.Content,
+			Name:    c.Message.Name,
+		}
+		
+		// Convert tool calls to response format
+		if len(c.Message.ToolCalls) > 0 {
+			msgOut.ToolCalls = make([]ToolCall, 0, len(c.Message.ToolCalls))
+			for _, tc := range c.Message.ToolCalls {
+				msgOut.ToolCalls = append(msgOut.ToolCalls, ToolCall{
+					ID:   tc.ID,
+					Type: tc.Type,
+					Function: FunctionCall{
+						Name:      tc.Function.Name,
+						Arguments: tc.Function.Arguments,
+					},
+				})
+			}
+		}
+		
 		choices = append(choices, ChatCompletionChoice{
-			Index: c.Index,
-			Message: ChatMessageOut{
-				Role:    c.Message.Role,
-				Content: c.Message.Content,
-				Name:    c.Message.Name,
-			},
+			Index:        c.Index,
+			Message:      msgOut,
 			FinishReason: c.FinishReason,
 		})
 	}
@@ -454,12 +489,30 @@ func (s *Server) handleStreamChatCompletion(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// Convert tools
+	var tools []llm.Tool
+	if len(req.Tools) > 0 {
+		tools = make([]llm.Tool, 0, len(req.Tools))
+		for _, t := range req.Tools {
+			tools = append(tools, llm.Tool{
+				Type: t.Type,
+				Function: llm.ToolFunction{
+					Name:        t.Function.Name,
+					Description: t.Function.Description,
+					Parameters:  t.Function.Parameters,
+				},
+			})
+		}
+	}
+
 	stream, err := s.app.StreamChatCompletion(r.Context(), llm.ChatCompletionRequest{
 		Model:       req.Model,
 		Messages:    msgs,
 		Temperature: req.Temperature,
 		MaxTokens:   req.MaxTokens,
 		User:        req.User,
+		Tools:       tools,
+		ToolChoice:  req.ToolChoice,
 	})
 	if err != nil {
 		writeErr(w, err)
@@ -508,12 +561,33 @@ func (s *Server) handleStreamChatCompletion(w http.ResponseWriter, r *http.Reque
 
 		choices := make([]ChatCompletionChunkChoiceOut, 0, len(chunk.Choices))
 		for _, c := range chunk.Choices {
+			delta := ChatCompletionChunkDelta{
+				Role:    c.Delta.Role,
+				Content: c.Delta.Content,
+			}
+			
+			// Convert tool call deltas
+			if len(c.Delta.ToolCalls) > 0 {
+				delta.ToolCalls = make([]ToolCallDelta, 0, len(c.Delta.ToolCalls))
+				for _, tc := range c.Delta.ToolCalls {
+					toolCallDelta := ToolCallDelta{
+						Index: tc.Index,
+						ID:    tc.ID,
+						Type:  tc.Type,
+					}
+					if tc.Function != nil {
+						toolCallDelta.Function = &FunctionCallDelta{
+							Name:      tc.Function.Name,
+							Arguments: tc.Function.Arguments,
+						}
+					}
+					delta.ToolCalls = append(delta.ToolCalls, toolCallDelta)
+				}
+			}
+			
 			choices = append(choices, ChatCompletionChunkChoiceOut{
-				Index: c.Index,
-				Delta: ChatCompletionChunkDelta{
-					Role:    c.Delta.Role,
-					Content: c.Delta.Content,
-				},
+				Index:        c.Index,
+				Delta:        delta,
 				FinishReason: c.FinishReason,
 			})
 		}
