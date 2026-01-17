@@ -53,7 +53,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
   }'
 ```
 
-For complete examples and usage patterns, see the full documentation below.
+For complete examples and usage patterns, see below.
 
 ## API Reference
 
@@ -71,11 +71,6 @@ Tool calling uses the standard `/v1/chat/completions` endpoint with additional p
 ### Response Format
 
 Responses include a `tool_calls` array in the message when the model wants to use a tool.
-
-## See Full Documentation
-
-For complete examples, best practices, and SDK integration guides, see:
-- [Full Tool Calling Documentation](TOOL_CALLING.md) (complete guide with examples)
 
 ## Quick Examples
 

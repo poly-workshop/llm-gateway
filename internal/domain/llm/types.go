@@ -43,7 +43,9 @@ type ToolCall struct {
 type ToolFunction struct {
 	Name        string
 	Description string
-	Parameters  any // JSON schema object
+	// Parameters is a JSON schema object defining the function's parameters.
+	// Uses 'any' type as it's passed through to providers without validation.
+	Parameters  any
 }
 
 // Tool represents a tool that can be used by the model.
@@ -93,10 +95,8 @@ type ChatCompletionRequest struct {
 	// Tools available for the model to call.
 	Tools []Tool
 	// Controls which (if any) tool is called by the model.
-	// "none" means the model will not call any tool and instead generates a message.
-	// "auto" means the model can pick between generating a message or calling one or more tools.
-	// "required" means the model must call one or more tools.
-	// Specifying a particular tool via {"type": "function", "function": {"name": "my_function"}} forces the model to call that tool.
+	// Can be a string ("none", "auto", "required") or an object specifying a particular tool.
+	// Uses 'any' type to support polymorphic API specification.
 	ToolChoice any
 }
 
