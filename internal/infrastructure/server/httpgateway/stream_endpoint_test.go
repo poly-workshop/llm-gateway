@@ -28,7 +28,7 @@ func TestDeprecatedStreamEndpoint_Returns404(t *testing.T) {
 			Capabilities: []string{"text"},
 		},
 	}
-	appSvc := llmgateway.NewService(providers, models, nil)
+	appSvc := llmgateway.NewService(providers, models, nil, nil)
 	srv := &Server{app: appSvc}
 
 	// Create a router simulating the actual server routes (without the deprecated endpoint)
@@ -76,7 +76,7 @@ func TestStreamParameter_Implemented(t *testing.T) {
 			Capabilities: []string{"text"},
 		},
 	}
-	appSvc := llmgateway.NewService(providers, models, nil)
+	appSvc := llmgateway.NewService(providers, models, nil, nil)
 	srv := &Server{app: appSvc}
 
 	// Test: Request with stream=true
@@ -169,7 +169,7 @@ func TestStreamParameter_False_WorksNormally(t *testing.T) {
 			Capabilities: []string{"text"},
 		},
 	}
-	appSvc := llmgateway.NewService(providers, models, nil)
+	appSvc := llmgateway.NewService(providers, models, nil, nil)
 	srv := &Server{app: appSvc}
 
 	// Test: Request with stream=false

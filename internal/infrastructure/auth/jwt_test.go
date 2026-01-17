@@ -32,13 +32,15 @@ func TestJWT_Ed25519_SignAndVerify(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Sign: %v", err)
 	}
-	sub, models, err := verifier.Verify(token, now)
+	sub, jti, models, err := verifier.Verify(token, now)
 	if err != nil {
 		t.Fatalf("Verify: %v", err)
 	}
 	if sub != "svc-a" {
 		t.Fatalf("subject mismatch: got %q", sub)
 	}
+	// JTI is optional and may be empty
+	_ = jti
 	if len(models) != 1 || models[0] != "openrouter/openai/gpt-4o" {
 		t.Fatalf("models mismatch: got %v", models)
 	}
@@ -67,7 +69,7 @@ func TestJWT_AudienceMismatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Sign: %v", err)
 	}
-	_, _, err = verifier.Verify(token, now)
+	_, _, _, err = verifier.Verify(token, now)
 	if err == nil {
 		t.Fatalf("expected verify error")
 	}
@@ -96,7 +98,7 @@ func TestJWT_Expired(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Sign: %v", err)
 	}
-	_, _, err = verifier.Verify(token, now.Add(2*time.Second))
+	_, _, _, err = verifier.Verify(token, now.Add(2*time.Second))
 	if err == nil {
 		t.Fatalf("expected verify error for expired token")
 	}
