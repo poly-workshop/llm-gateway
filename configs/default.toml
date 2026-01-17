@@ -2,3 +2,18 @@
 level = "info"
 format = "tint"
 
+# Usage Sink Configuration (optional)
+# Publishes usage events to an external sink for auditing and billing.
+[usage_sink]
+enabled = false
+backend = "redis_stream"  # "redis_stream" or empty to disable
+
+[usage_sink.redis_stream]
+addr = "localhost:6379"
+password = ""
+db = 0
+stream_key = "llmgw:usage:v1"
+max_len = 10000  # Maximum stream length (0 = unlimited)
+timeout = "500ms"
+approx_trim = true  # Use MAXLEN ~ for better performance
+

@@ -125,12 +125,13 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 			writeJSONError(w, http.StatusUnauthorized, "missing bearer token")
 			return
 		}
-		subject, allowedModels, ok := s.authMgr.AuthenticateJWT(ctx, token, time.Now())
+		subject, jti, allowedModels, ok := s.authMgr.AuthenticateJWT(ctx, token, time.Now())
 		if !ok {
 			writeJSONError(w, http.StatusUnauthorized, "invalid jwt")
 			return
 		}
 		ctx = auth.WithSubject(ctx, subject)
+		ctx = auth.WithJTI(ctx, jti)
 		ctx = auth.WithAllowedModels(ctx, allowedModels)
 		ctx = auth.WithMethod(ctx, auth.MethodJWT)
 		next.ServeHTTP(w, r.WithContext(ctx))

@@ -29,14 +29,14 @@ func (m *Manager) Close(ctx context.Context) error {
 	return nil
 }
 
-func (m *Manager) AuthenticateJWT(ctx context.Context, token string, now time.Time) (subject string, allowedModels []string, ok bool) {
+func (m *Manager) AuthenticateJWT(ctx context.Context, token string, now time.Time) (subject string, jti string, allowedModels []string, ok bool) {
 	if m == nil || m.verifier == nil {
 		// If not required, allow anonymous access (subject empty).
-		return "", nil, !m.Required()
+		return "", "", nil, !m.Required()
 	}
-	sub, models, err := m.verifier.Verify(token, now)
+	sub, jtiVal, models, err := m.verifier.Verify(token, now)
 	if err != nil || sub == "" {
-		return "", nil, false
+		return "", "", nil, false
 	}
-	return sub, models, true
+	return sub, jtiVal, models, true
 }

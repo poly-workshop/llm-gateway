@@ -19,6 +19,9 @@ type HTTPAppConfig struct {
 	// Storage config is shared by multiple modules (e.g. LLM config store).
 	Storage StorageConfig `mapstructure:"storage"`
 
+	// UsageSink config for publishing usage events.
+	UsageSink UsageSinkConfig `mapstructure:"usage_sink"`
+
 	Auth struct {
 		JWT struct {
 			Required      bool   `mapstructure:"required"`
@@ -166,6 +169,25 @@ type StorageConfig struct {
 		// Collection is optional; individual modules may override it.
 		Collection string `mapstructure:"collection"`
 	} `mapstructure:"mongodb"`
+}
+
+type UsageSinkConfig struct {
+	// Enabled controls whether usage events are published.
+	Enabled bool `mapstructure:"enabled"`
+
+	// Backend specifies the sink type ("redis_stream" or empty to disable).
+	Backend string `mapstructure:"backend"`
+
+	// RedisStream config for Redis Stream sink.
+	RedisStream struct {
+		Addr       string        `mapstructure:"addr"`
+		Password   string        `mapstructure:"password"`
+		DB         int           `mapstructure:"db"`
+		StreamKey  string        `mapstructure:"stream_key"`
+		MaxLen     int64         `mapstructure:"max_len"`
+		Timeout    time.Duration `mapstructure:"timeout"`
+		ApproxTrim bool          `mapstructure:"approx_trim"`
+	} `mapstructure:"redis_stream"`
 }
 
 func unmarshalViper(v *viper.Viper, out any) error {
