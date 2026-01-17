@@ -90,7 +90,7 @@ func (s *RedisStreamSink) Publish(ctx context.Context, event llm.UsageEvent) err
 	}
 
 	// Create a timeout context for the Redis operation
-	timeoutCtx, cancel := context.WithTimeout(ctx, s.timeout)
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), s.timeout)
 	defer cancel()
 
 	// Build XADD args
