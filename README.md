@@ -162,6 +162,49 @@ When a request is made to `/v1/chat/completions`:
 
 3. **If `max_output_tokens` is 0 or not configured**: No limit is enforced.
 
+## Tool Calling (Function Calling)
+
+LLM Gateway provides full support for OpenAI-compatible tool calling, enabling AI agents and applications to interact with external tools and APIs.
+
+### Quick Example
+
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "model": "dashscope/qwen-plus",
+    "messages": [{"role": "user", "content": "What'\''s the weather in SF?"}],
+    "tools": [{
+      "type": "function",
+      "function": {
+        "name": "get_weather",
+        "description": "Get current weather",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "location": {"type": "string"}
+          },
+          "required": ["location"]
+        }
+      }
+    }],
+    "tool_choice": "auto"
+  }'
+```
+
+### Key Features
+
+- **Full OpenAI Compatibility**: Supports `tools`, `tool_choice`, and `tool_calls` in responses
+- **Streaming Support**: Tool calls work with SSE streaming
+- **SDK Integration**: Works with Vercel AI SDK, LangChain, OpenAI SDK, and other frameworks
+- **Multi-Turn Conversations**: Handle tool execution and result submission
+- **Provider Passthrough**: Tool definitions are passed directly to upstream providers
+
+### Documentation
+
+For detailed usage, examples, and best practices, see [Tool Calling Documentation](docs/TOOL_CALLING.md).
+
 ## Usage Event Sink
 
 LLM Gateway can publish usage/audit events to an external sink for downstream processing, aggregation, and billing. This feature is designed for scenarios where frontends or thin clients directly access the Gateway (e.g., using temporary JWT tokens) without upstream auditing.
