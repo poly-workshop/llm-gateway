@@ -75,7 +75,10 @@ func LoadHTTP() (HTTPAppConfig, error) {
 	}
 
 	// Validate usage sink config
-	if cfg.UsageSink.Enabled && cfg.UsageSink.Backend != "" {
+	if cfg.UsageSink.Enabled {
+		if cfg.UsageSink.Backend == "" {
+			return cfg, fmt.Errorf("usage_sink.backend is required when usage_sink.enabled is true")
+		}
 		if cfg.UsageSink.Backend != "redis_stream" {
 			return cfg, fmt.Errorf("invalid usage_sink.backend: %q (supported: redis_stream)", cfg.UsageSink.Backend)
 		}

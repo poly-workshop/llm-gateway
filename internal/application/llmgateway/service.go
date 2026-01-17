@@ -427,7 +427,8 @@ func (s *Service) publishUsageEvent(ctx context.Context, event llm.UsageEvent) {
 }
 
 // buildUsageEvent creates a usage event from request context and response metadata.
-// timestamp is set to the current time (request completion time).
+// Timestamp represents the event creation time (approximates request completion time).
+// For precise completion time, use startTime + latency, but this is close enough for auditing.
 func (s *Service) buildUsageEvent(
 	ctx context.Context,
 	startTime time.Time,
@@ -442,7 +443,7 @@ func (s *Service) buildUsageEvent(
 	latencyMs := time.Since(startTime).Milliseconds()
 
 	return llm.UsageEvent{
-		Timestamp:    time.Now().UTC(), // Event creation time (request completion)
+		Timestamp:    time.Now().UTC(), // Event creation time (approximates request completion)
 		RequestID:    requestID,
 		Subject:      auth.SubjectFromContext(ctx),
 		JTI:          auth.JTIFromContext(ctx),

@@ -35,9 +35,16 @@ func StreamServerInterceptor(mgr *Manager) grpc.StreamServerInterceptor {
 		if err != nil {
 			return err
 		}
+		// Build context with auth values in a clear, sequential manner
+		ctx := ss.Context()
+		ctx = WithSubject(ctx, subject)
+		ctx = WithJTI(ctx, jti)
+		ctx = WithAllowedModels(ctx, allowedModels)
+		ctx = WithMethod(ctx, method)
+		
 		wrapped := &serverStreamWithContext{
 			ServerStream: ss,
-			ctx:          WithMethod(WithAllowedModels(WithJTI(WithSubject(ss.Context(), subject), jti), allowedModels), method),
+			ctx:          ctx,
 		}
 		return handler(srv, wrapped)
 	}
