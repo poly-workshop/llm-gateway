@@ -8,6 +8,7 @@ const (
 	ctxKeySubject ctxKey = iota
 	ctxKeyMethod
 	ctxKeyAllowedModels
+	ctxKeyJTI
 )
 
 type Method string
@@ -74,5 +75,20 @@ func AllowedModelsFromContext(ctx context.Context) []string {
 		return nil
 	}
 	v, _ := ctx.Value(ctxKeyAllowedModels).([]string)
+	return v
+}
+
+func WithJTI(ctx context.Context, jti string) context.Context {
+	if jti == "" {
+		return ctx
+	}
+	return context.WithValue(ctx, ctxKeyJTI, jti)
+}
+
+func JTIFromContext(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	v, _ := ctx.Value(ctxKeyJTI).(string)
 	return v
 }

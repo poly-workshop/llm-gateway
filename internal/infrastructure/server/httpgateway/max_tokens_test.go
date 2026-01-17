@@ -136,7 +136,7 @@ func TestMaxTokens_ExceedsLimit(t *testing.T) {
 			MaxOutputTokens: 100,
 		},
 	}
-	appSvc := llmgateway.NewService(providers, models, nil)
+	appSvc := llmgateway.NewService(providers, models, nil, nil)
 	srv := &Server{app: appSvc}
 
 	// Test: Request with max_tokens > limit (101 > 100)
@@ -201,7 +201,7 @@ func TestMaxTokens_WithinLimit(t *testing.T) {
 			MaxOutputTokens: 100,
 		},
 	}
-	appSvc := llmgateway.NewService(providers, models, nil)
+	appSvc := llmgateway.NewService(providers, models, nil, nil)
 	srv := &Server{app: appSvc}
 
 	// Test: Request with max_tokens <= limit (50 <= 100)
@@ -242,7 +242,7 @@ func TestMaxTokens_NoLimitConfigured(t *testing.T) {
 			MaxOutputTokens: 0, // No limit
 		},
 	}
-	appSvc := llmgateway.NewService(providers, models, nil)
+	appSvc := llmgateway.NewService(providers, models, nil, nil)
 	srv := &Server{app: appSvc}
 
 	// Test: Request with large max_tokens
@@ -283,7 +283,7 @@ func TestMaxTokens_MissingMaxTokens(t *testing.T) {
 			MaxOutputTokens: 100,
 		},
 	}
-	appSvc := llmgateway.NewService(providers, models, nil)
+	appSvc := llmgateway.NewService(providers, models, nil, nil)
 	srv := &Server{app: appSvc}
 
 	// Test: Request without max_tokens (0 means use provider's default)

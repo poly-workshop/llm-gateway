@@ -46,12 +46,12 @@ func NewJWTVerifier(issuer, audience, publicKeyPEM string) (*JWTVerifier, error)
 	return &JWTVerifier{issuer: issuer, audience: audience, pubKey: pub}, nil
 }
 
-func (v *JWTVerifier) Verify(tokenString string, now time.Time) (subject string, allowedModels []string, err error) {
+func (v *JWTVerifier) Verify(tokenString string, now time.Time) (subject string, jti string, allowedModels []string, err error) {
 	if v == nil {
-		return "", nil, fmt.Errorf("%w: verifier is nil", ErrInvalidJWT)
+		return "", "", nil, fmt.Errorf("%w: verifier is nil", ErrInvalidJWT)
 	}
 	if tokenString == "" {
-		return "", nil, fmt.Errorf("%w: missing token", ErrInvalidJWT)
+		return "", "", nil, fmt.Errorf("%w: missing token", ErrInvalidJWT)
 	}
 
 	claims := &TokenClaims{}
@@ -65,10 +65,10 @@ func (v *JWTVerifier) Verify(tokenString string, now time.Time) (subject string,
 		return v.pubKey, nil
 	})
 	if err != nil || tok == nil || !tok.Valid {
-		return "", nil, fmt.Errorf("%w: %v", ErrInvalidJWT, err)
+		return "", "", nil, fmt.Errorf("%w: %v", ErrInvalidJWT, err)
 	}
 	if claims.Subject == "" {
-		return "", nil, fmt.Errorf("%w: missing sub", ErrInvalidJWT)
+		return "", "", nil, fmt.Errorf("%w: missing sub", ErrInvalidJWT)
 	}
 
 	// Normalize allowlist (drop empty strings). If empty => unrestricted.
@@ -82,7 +82,7 @@ func (v *JWTVerifier) Verify(tokenString string, now time.Time) (subject string,
 		}
 		allowedModels = out
 	}
-	return claims.Subject, allowedModels, nil
+	return claims.Subject, claims.ID, allowedModels, nil
 }
 
 func parseEd25519PublicKeyFromPEM(pemText string) (ed25519.PublicKey, error) {

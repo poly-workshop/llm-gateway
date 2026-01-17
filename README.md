@@ -14,6 +14,7 @@ Project implementation notes and AI/Agent summaries are maintained in `Agent.md`
 - **Multi-Provider Routing**: Dynamic provider selection via model ID prefix (e.g., `dashscope/qwen-turbo`, `openrouter/openai/gpt-4o`)
 - **Clean Architecture**: Strict layering (domain → application → infrastructure) for maintainability and testability
 - **Rate Limiting & Quota Control**: Per-model `max_output_tokens` enforcement to prevent excessive resource usage
+- **Usage Event Sink**: Optional Redis Stream-based event publishing for auditing and billing (best-effort, non-blocking)
 - **Observability**: Request logging, metrics, and health checks (`/livez`, `/readyz`)
 - **Low Latency**: Direct gRPC-Gateway HandlerServer (no additional proxy hop), stateless horizontal scaling
 
@@ -161,4 +162,99 @@ When a request is made to `/v1/chat/completions`:
 2. **If `max_tokens` is not provided**: The request is allowed and the upstream provider's default is used (following OpenAI behavior).
 
 3. **If `max_output_tokens` is 0 or not configured**: No limit is enforced.
+
+## Usage Event Sink
+
+LLM Gateway can publish usage/audit events to an external sink for downstream processing, aggregation, and billing. This feature is designed for scenarios where frontends or thin clients directly access the Gateway (e.g., using temporary JWT tokens) without upstream auditing.
+
+### Design Principles
+
+- **Best-Effort**: Event publishing is non-blocking and does not affect request processing. If the sink is unavailable, the request proceeds normally with a logged warning.
+- **Minimal Payload**: Events contain only metadata (timestamp, request ID, subject, JTI, model, provider, usage tokens, latency, status, error info). Prompts and completions are **not** included.
+- **Redis Stream Backend**: Currently supports Redis Streams for low-latency, append-only event buffering.
+- **Downstream Consumption**: External services consume the stream for auditing, billing, or analytics.
+
+### Configuration
+
+Enable the usage sink in your config file (`configs/llm-gateway-http/default.toml` or environment-specific config):
+
+```toml
+[usage_sink]
+enabled = true
+backend = "redis_stream"
+
+[usage_sink.redis_stream]
+addr = "localhost:6379"
+password = ""
+stream_key = "llmgw:usage:v1"
+max_len = 10000  # Maximum stream length (0 = unlimited)
+timeout = "500ms"
+approx_trim = true  # Use MAXLEN ~ for better performance
+```
+
+### Event Schema
+
+Each event is published as a JSON object with the following fields:
+
+```json
+{
+  "timestamp": "2026-01-17T03:45:12.123Z",
+  "request_id": "chatcmpl-abc123",
+  "subject": "user@example.com",
+  "jti": "jwt-token-id",
+  "model": "dashscope/qwen-turbo",
+  "provider": "dashscope",
+  "usage_tokens": {
+    "prompt_tokens": 50,
+    "completion_tokens": 150,
+    "total_tokens": 200
+  },
+  "latency_ms": 1234,
+  "status": "success",
+  "error_type": "",
+  "error_message": ""
+}
+```
+
+- **timestamp**: UTC timestamp when the request completed
+- **request_id**: Unique generation ID (from LLM provider)
+- **subject**: Authenticated user/service identifier (from JWT `sub` claim)
+- **jti**: JWT token ID (from JWT `jti` claim, if present)
+- **model**: Routed model ID (e.g., `dashscope/qwen-turbo`)
+- **provider**: Upstream provider name (e.g., `dashscope`, `openrouter`)
+- **usage_tokens**: Token usage statistics
+- **latency_ms**: Request latency in milliseconds
+- **status**: `"success"` or `"error"`
+- **error_type**: Error type if failed (e.g., `"invalid_request_error"`, `"provider_error"`)
+- **error_message**: Brief error description if failed
+
+### Consuming Events
+
+Use any Redis Stream consumer to process events. Example with `redis-cli`:
+
+```bash
+# Read all events from the beginning
+redis-cli XREAD COUNT 100 STREAMS llmgw:usage:v1 0
+
+# Read new events (blocking)
+redis-cli XREAD BLOCK 0 STREAMS llmgw:usage:v1 $
+```
+
+Example consumer group setup:
+
+```bash
+# Create consumer group
+redis-cli XGROUP CREATE llmgw:usage:v1 billing-service $ MKSTREAM
+
+# Consume as part of group
+redis-cli XREADGROUP GROUP billing-service consumer1 COUNT 10 STREAMS llmgw:usage:v1 >
+```
+
+### Operational Notes
+
+- **Failure Handling**: If Redis is unavailable or publishing fails, the gateway logs a warning but continues serving requests. Monitor logs for `"failed to publish usage event"` messages.
+- **Retention**: Use `max_len` to limit stream size. Old events are automatically trimmed when the stream exceeds this length.
+- **Performance**: `approx_trim = true` uses `MAXLEN ~` for better performance with minimal precision loss.
+- **No Guarantees**: This is a best-effort sink. For critical billing, implement idempotent downstream consumers with retries.
+
 

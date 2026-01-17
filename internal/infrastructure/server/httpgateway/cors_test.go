@@ -11,7 +11,7 @@ import (
 )
 
 func TestCORSMiddleware_Preflight_DoesNotRequireAuth(t *testing.T) {
-	appSvc := llmgateway.NewService(nil, nil, nil)
+	appSvc := llmgateway.NewService(nil, nil, nil, nil)
 	authMgr := auth.NewManager(true, nil) // required, but no verifier => would 401 if auth ran
 
 	s, err := New(":0", appSvc, authMgr, config.CORSConfig{

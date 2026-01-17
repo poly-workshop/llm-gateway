@@ -19,6 +19,9 @@ type HTTPAppConfig struct {
 	// Storage config is shared by multiple modules (e.g. LLM config store).
 	Storage StorageConfig `mapstructure:"storage"`
 
+	// UsageSink config for publishing usage events.
+	UsageSink UsageSinkConfig `mapstructure:"usage_sink"`
+
 	Auth struct {
 		JWT struct {
 			Required      bool   `mapstructure:"required"`
@@ -69,6 +72,16 @@ func LoadHTTP() (HTTPAppConfig, error) {
 	// Defaults for browser-friendly CORS.
 	if cfg.HTTP.CORS.MaxAge == 0 {
 		cfg.HTTP.CORS.MaxAge = 10 * time.Minute
+	}
+
+	// Validate usage sink config
+	if cfg.UsageSink.Enabled {
+		if cfg.UsageSink.Backend == "" {
+			return cfg, fmt.Errorf("usage_sink.backend is required when usage_sink.enabled is true")
+		}
+		if cfg.UsageSink.Backend != "redis_stream" {
+			return cfg, fmt.Errorf("invalid usage_sink.backend: %q (supported: redis_stream)", cfg.UsageSink.Backend)
+		}
 	}
 
 	return cfg, nil
@@ -166,6 +179,24 @@ type StorageConfig struct {
 		// Collection is optional; individual modules may override it.
 		Collection string `mapstructure:"collection"`
 	} `mapstructure:"mongodb"`
+}
+
+type UsageSinkConfig struct {
+	// Enabled controls whether usage events are published.
+	Enabled bool `mapstructure:"enabled"`
+
+	// Backend specifies the sink type ("redis_stream" or empty to disable).
+	Backend string `mapstructure:"backend"`
+
+	// RedisStream config for Redis Stream sink.
+	RedisStream struct {
+		Addr       string        `mapstructure:"addr"`
+		Password   string        `mapstructure:"password"`
+		StreamKey  string        `mapstructure:"stream_key"`
+		MaxLen     int64         `mapstructure:"max_len"`
+		Timeout    time.Duration `mapstructure:"timeout"`
+		ApproxTrim bool          `mapstructure:"approx_trim"`
+	} `mapstructure:"redis_stream"`
 }
 
 func unmarshalViper(v *viper.Viper, out any) error {

@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/poly-workshop/llm-gateway/internal/domain/llm"
+	"github.com/poly-workshop/llm-gateway/internal/infrastructure/auth"
 )
 
 // Service hosts application-level use cases for the LLM gateway.
@@ -21,6 +23,9 @@ type Service struct {
 
 	// generations stores generation records for generation queries.
 	generations GenerationRepository
+
+	// usageSink publishes usage events to an external sink (e.g., Redis Stream).
+	usageSink UsageSink
 }
 
 type ModelSpec struct {
@@ -35,12 +40,12 @@ type ModelSpec struct {
 	UpstreamModel string
 }
 
-func NewService(providers map[string]Provider, models []ModelSpec, generations GenerationRepository) *Service {
+func NewService(providers map[string]Provider, models []ModelSpec, generations GenerationRepository, usageSink UsageSink) *Service {
 	mm := make(map[string]ModelSpec, len(models))
 	for _, m := range models {
 		mm[m.ID] = m
 	}
-	return &Service{providers: providers, models: mm, generations: generations}
+	return &Service{providers: providers, models: mm, generations: generations, usageSink: usageSink}
 }
 
 // ReplaceConfig replaces providers and models atomically.
@@ -100,6 +105,8 @@ func (s *Service) GetModel(_ context.Context, id string) (llm.Model, error) {
 }
 
 func (s *Service) CreateEmbeddings(ctx context.Context, req llm.EmbeddingsRequest) (llm.EmbeddingsResponse, error) {
+	startTime := time.Now()
+
 	if req.Model == "" {
 		return llm.EmbeddingsResponse{}, llm.InvalidArgument("model is required")
 	}
@@ -112,11 +119,21 @@ func (s *Service) CreateEmbeddings(ctx context.Context, req llm.EmbeddingsReques
 	p, upstreamModel, err := s.resolveProviderAndUpstreamModel(routedModel)
 	s.mu.RUnlock()
 	if err != nil {
+		// Publish error event
+		event := s.buildUsageEvent(ctx, startTime, "", routedModel, llm.TokenUsage{}, "error", "invalid_request_error", err.Error())
+		s.publishUsageEvent(ctx, event)
 		return llm.EmbeddingsResponse{}, err
 	}
 	req.Model = upstreamModel
 	resp, err := p.CreateEmbeddings(ctx, req)
 	if err != nil {
+		// Publish error event (use resp.ID if available, otherwise empty)
+		requestID := ""
+		if resp.ID != "" {
+			requestID = resp.ID
+		}
+		event := s.buildUsageEvent(ctx, startTime, requestID, routedModel, llm.TokenUsage{}, "error", "provider_error", err.Error())
+		s.publishUsageEvent(ctx, event)
 		return llm.EmbeddingsResponse{}, err
 	}
 
@@ -126,10 +143,21 @@ func (s *Service) CreateEmbeddings(ctx context.Context, req llm.EmbeddingsReques
 		_ = s.generations.Save(ctx, gen) // Best effort, don't fail the request.
 	}
 
+	// Publish success event
+	usage := llm.TokenUsage{
+		PromptTokens:     resp.Usage.PromptTokens,
+		CompletionTokens: 0,
+		TotalTokens:      resp.Usage.TotalTokens,
+	}
+	event := s.buildUsageEvent(ctx, startTime, resp.ID, routedModel, usage, "success", "", "")
+	s.publishUsageEvent(ctx, event)
+
 	return resp, nil
 }
 
 func (s *Service) CreateChatCompletion(ctx context.Context, req llm.ChatCompletionRequest) (llm.ChatCompletionResponse, error) {
+	startTime := time.Now()
+
 	if req.Model == "" {
 		return llm.ChatCompletionResponse{}, llm.InvalidArgument("model is required")
 	}
@@ -143,19 +171,31 @@ func (s *Service) CreateChatCompletion(ctx context.Context, req llm.ChatCompleti
 	if modelSpec, ok := s.models[routedModel]; ok && modelSpec.MaxOutputTokens > 0 {
 		if req.MaxTokens > modelSpec.MaxOutputTokens {
 			s.mu.RUnlock()
-			return llm.ChatCompletionResponse{}, llm.InvalidArgument(
-				fmt.Sprintf("max_tokens (%d) exceeds model limit (%d)", req.MaxTokens, modelSpec.MaxOutputTokens),
-			)
+			errMsg := fmt.Sprintf("max_tokens (%d) exceeds model limit (%d)", req.MaxTokens, modelSpec.MaxOutputTokens)
+			// Publish error event
+			event := s.buildUsageEvent(ctx, startTime, "", routedModel, llm.TokenUsage{}, "error", "invalid_request_error", errMsg)
+			s.publishUsageEvent(ctx, event)
+			return llm.ChatCompletionResponse{}, llm.InvalidArgument(errMsg)
 		}
 	}
 	p, upstreamModel, err := s.resolveProviderAndUpstreamModel(routedModel)
 	s.mu.RUnlock()
 	if err != nil {
+		// Publish error event
+		event := s.buildUsageEvent(ctx, startTime, "", routedModel, llm.TokenUsage{}, "error", "invalid_request_error", err.Error())
+		s.publishUsageEvent(ctx, event)
 		return llm.ChatCompletionResponse{}, err
 	}
 	req.Model = upstreamModel
 	resp, err := p.CreateChatCompletion(ctx, req)
 	if err != nil {
+		// Publish error event (use resp.ID if available, otherwise empty)
+		requestID := ""
+		if resp.ID != "" {
+			requestID = resp.ID
+		}
+		event := s.buildUsageEvent(ctx, startTime, requestID, routedModel, llm.TokenUsage{}, "error", "provider_error", err.Error())
+		s.publishUsageEvent(ctx, event)
 		return llm.ChatCompletionResponse{}, err
 	}
 
@@ -165,10 +205,16 @@ func (s *Service) CreateChatCompletion(ctx context.Context, req llm.ChatCompleti
 		_ = s.generations.Save(ctx, gen) // Best effort, don't fail the request.
 	}
 
+	// Publish success event
+	event := s.buildUsageEvent(ctx, startTime, resp.ID, routedModel, resp.Usage, "success", "", "")
+	s.publishUsageEvent(ctx, event)
+
 	return resp, nil
 }
 
 func (s *Service) StreamChatCompletion(ctx context.Context, req llm.ChatCompletionRequest) (llm.ChatCompletionStream, error) {
+	startTime := time.Now()
+
 	if req.Model == "" {
 		return nil, llm.InvalidArgument("model is required")
 	}
@@ -182,28 +228,32 @@ func (s *Service) StreamChatCompletion(ctx context.Context, req llm.ChatCompleti
 	if modelSpec, ok := s.models[routedModel]; ok && modelSpec.MaxOutputTokens > 0 {
 		if req.MaxTokens > modelSpec.MaxOutputTokens {
 			s.mu.RUnlock()
-			return nil, llm.InvalidArgument(
-				fmt.Sprintf("max_tokens (%d) exceeds model limit (%d)", req.MaxTokens, modelSpec.MaxOutputTokens),
-			)
+			errMsg := fmt.Sprintf("max_tokens (%d) exceeds model limit (%d)", req.MaxTokens, modelSpec.MaxOutputTokens)
+			// Publish error event
+			event := s.buildUsageEvent(ctx, startTime, "", routedModel, llm.TokenUsage{}, "error", "invalid_request_error", errMsg)
+			s.publishUsageEvent(ctx, event)
+			return nil, llm.InvalidArgument(errMsg)
 		}
 	}
 	p, upstreamModel, err := s.resolveProviderAndUpstreamModel(routedModel)
 	s.mu.RUnlock()
 	if err != nil {
+		// Publish error event
+		event := s.buildUsageEvent(ctx, startTime, "", routedModel, llm.TokenUsage{}, "error", "invalid_request_error", err.Error())
+		s.publishUsageEvent(ctx, event)
 		return nil, err
 	}
 	req.Model = upstreamModel
 	stream, err := p.StreamChatCompletion(ctx, req)
 	if err != nil {
+		// Publish error event
+		event := s.buildUsageEvent(ctx, startTime, "", routedModel, llm.TokenUsage{}, "error", "provider_error", err.Error())
+		s.publishUsageEvent(ctx, event)
 		return nil, err
 	}
 
-	// Wrap stream to capture generation data for tracking
-	if s.generations != nil {
-		return newTrackingStream(ctx, stream, routedModel, s.generations), nil
-	}
-
-	return stream, nil
+	// Wrap stream to capture generation data for tracking and usage events
+	return newTrackingStream(ctx, stream, routedModel, startTime, s.generations, s.usageSink, s), nil
 }
 
 func (s *Service) resolveProviderAndUpstreamModel(routedModel string) (Provider, string, error) {
@@ -269,22 +319,36 @@ func (s *Service) buildGenerationFromEmbeddings(routedModel string, resp llm.Emb
 	}
 }
 
-// trackingStream wraps a ChatCompletionStream to capture generation data.
+// trackingStream wraps a ChatCompletionStream to capture generation data and usage events.
 type trackingStream struct {
 	ctx          context.Context
 	underlying   llm.ChatCompletionStream
 	routedModel  string
+	startTime    time.Time
 	generations  GenerationRepository
+	usageSink    UsageSink
+	service      *Service // Reference to service for helper methods
 	lastChunk    *llm.ChatCompletionChunk
 	streamClosed bool
 }
 
-func newTrackingStream(ctx context.Context, underlying llm.ChatCompletionStream, routedModel string, generations GenerationRepository) *trackingStream {
+func newTrackingStream(
+	ctx context.Context,
+	underlying llm.ChatCompletionStream,
+	routedModel string,
+	startTime time.Time,
+	generations GenerationRepository,
+	usageSink UsageSink,
+	service *Service,
+) *trackingStream {
 	return &trackingStream{
 		ctx:         ctx,
 		underlying:  underlying,
 		routedModel: routedModel,
+		startTime:   startTime,
 		generations: generations,
+		usageSink:   usageSink,
+		service:     service,
 	}
 }
 
@@ -332,5 +396,81 @@ func (t *trackingStream) saveGeneration() {
 	}
 
 	// Best effort, don't fail the stream if generation save fails
-	_ = t.generations.Save(t.ctx, gen)
+	if t.generations != nil {
+		_ = t.generations.Save(t.ctx, gen)
+	}
+
+	// Publish usage event (check Usage again to be safe)
+	if t.service != nil && t.usageSink != nil && t.lastChunk.Usage != nil {
+		event := t.service.buildUsageEvent(
+			t.ctx,
+			t.startTime,
+			t.lastChunk.ID,
+			t.routedModel,
+			*t.lastChunk.Usage,
+			"success",
+			"",
+			"",
+		)
+		_ = t.usageSink.Publish(t.ctx, event)
+	}
+}
+
+// publishUsageEvent publishes a usage event to the configured sink (best-effort).
+// This is called after a request completes to record audit metadata.
+func (s *Service) publishUsageEvent(ctx context.Context, event llm.UsageEvent) {
+	if s == nil || s.usageSink == nil {
+		return
+	}
+	// Fire-and-forget: don't block or fail the request if publishing fails.
+	_ = s.usageSink.Publish(ctx, event)
+}
+
+// buildUsageEvent creates a usage event from request context and response metadata.
+// Timestamp represents the event creation time (approximates request completion time).
+// For precise completion time, use startTime + latency, but this is close enough for auditing.
+func (s *Service) buildUsageEvent(
+	ctx context.Context,
+	startTime time.Time,
+	requestID string,
+	routedModel string,
+	usage llm.TokenUsage,
+	status string,
+	errorType string,
+	errorMessage string,
+) llm.UsageEvent {
+	provider := s.extractProviderFromModel(routedModel)
+	latencyMs := time.Since(startTime).Milliseconds()
+
+	return llm.UsageEvent{
+		Timestamp:    time.Now().UTC(), // Event creation time (approximates request completion)
+		RequestID:    requestID,
+		Subject:      auth.SubjectFromContext(ctx),
+		JTI:          auth.JTIFromContext(ctx),
+		Model:        routedModel,
+		Provider:     provider,
+		UsageTokens:  usage,
+		LatencyMs:    latencyMs,
+		Status:       status,
+		ErrorType:    errorType,
+		ErrorMessage: errorMessage,
+	}
+}
+
+// extractProviderFromModel extracts the provider name from a routed model ID.
+func (s *Service) extractProviderFromModel(routedModel string) string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// First check if it's a configured model
+	if m, ok := s.models[routedModel]; ok {
+		return m.Provider
+	}
+
+	// Otherwise, parse from model ID (e.g., "dashscope/qwen-turbo" -> "dashscope")
+	parts := strings.SplitN(routedModel, "/", 2)
+	if len(parts) >= 1 {
+		return parts[0]
+	}
+	return "unknown"
 }

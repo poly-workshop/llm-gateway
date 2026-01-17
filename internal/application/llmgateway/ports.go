@@ -20,3 +20,13 @@ type GenerationRepository interface {
 	Save(ctx context.Context, gen llm.Generation) error
 	Get(ctx context.Context, id string) (llm.Generation, error)
 }
+
+// UsageSink is an application port for publishing usage events to an external sink.
+// Implementations live in infrastructure (e.g. Redis Stream, Kafka).
+// All methods should be best-effort and non-blocking.
+type UsageSink interface {
+	// Publish sends a usage event to the sink. Should be non-blocking and best-effort.
+	Publish(ctx context.Context, event llm.UsageEvent) error
+	// Close releases any resources held by the sink.
+	Close(ctx context.Context) error
+}

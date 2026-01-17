@@ -17,6 +17,7 @@ import (
 	"github.com/poly-workshop/llm-gateway/internal/infrastructure/llmprovider/dashscope"
 	"github.com/poly-workshop/llm-gateway/internal/infrastructure/llmprovider/openrouter"
 	"github.com/poly-workshop/llm-gateway/internal/infrastructure/server/httpgateway"
+	"github.com/poly-workshop/llm-gateway/internal/infrastructure/usagesink"
 )
 
 func main() {
@@ -35,9 +36,34 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// Initialize usage sink if enabled
+	var usageSink llmgateway.UsageSink
+	if cfg.UsageSink.Enabled && cfg.UsageSink.Backend != "" {
+		switch cfg.UsageSink.Backend {
+		case "redis_stream":
+			sink, err := usagesink.NewRedisStreamSink(usagesink.RedisStreamConfig{
+				Addr:       cfg.UsageSink.RedisStream.Addr,
+				Password:   cfg.UsageSink.RedisStream.Password,
+				StreamKey:  cfg.UsageSink.RedisStream.StreamKey,
+				MaxLen:     cfg.UsageSink.RedisStream.MaxLen,
+				Timeout:    cfg.UsageSink.RedisStream.Timeout,
+				ApproxTrim: cfg.UsageSink.RedisStream.ApproxTrim,
+			})
+			if err != nil {
+				slog.Error("init usage sink failed", "error", err)
+				os.Exit(1)
+			}
+			usageSink = sink
+			defer func() { _ = usageSink.Close(context.Background()) }()
+			slog.Info("usage sink initialized", "backend", cfg.UsageSink.Backend, "stream", cfg.UsageSink.RedisStream.StreamKey)
+		default:
+			slog.Warn("unknown usage sink backend", "backend", cfg.UsageSink.Backend)
+		}
+	}
+
 	// TODO: Implement a concrete GenerationRepository (e.g., in-memory or database).
 	// For now, pass nil to skip generation record storage.
-	appSvc := llmgateway.NewService(nil, nil, nil)
+	appSvc := llmgateway.NewService(nil, nil, nil, usageSink)
 
 	var verifier *auth.JWTVerifier
 	if cfg.Auth.JWT.PublicKeyPEM != "" {
