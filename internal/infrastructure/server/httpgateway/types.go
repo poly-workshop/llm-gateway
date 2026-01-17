@@ -35,16 +35,45 @@ type ContentPart struct {
 	ImageURL *ImageURL `json:"image_url,omitempty"`
 }
 
+// FunctionCall represents a function call made by the assistant.
+type FunctionCall struct {
+	Name      string `json:"name"`
+	Arguments string `json:"arguments"`
+}
+
+// ToolCall represents a tool call made by the assistant.
+type ToolCall struct {
+	ID       string       `json:"id"`
+	Type     string       `json:"type"`
+	Function FunctionCall `json:"function"`
+}
+
+// ToolFunction defines a function that can be called.
+type ToolFunction struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Parameters  any    `json:"parameters,omitempty"`
+}
+
+// Tool represents a tool that can be used by the model.
+type Tool struct {
+	Type     string       `json:"type"`
+	Function ToolFunction `json:"function"`
+}
+
 type ChatMessageIn struct {
-	Role    string          `json:"role"`
-	Content json.RawMessage `json:"content"`
-	Name    string          `json:"name,omitempty"`
+	Role       string          `json:"role"`
+	Content    json.RawMessage `json:"content"`
+	Name       string          `json:"name,omitempty"`
+	ToolCalls  []ToolCall      `json:"tool_calls,omitempty"`
+	ToolCallID string          `json:"tool_call_id,omitempty"`
 }
 
 type ChatMessageOut struct {
-	Role    string `json:"role"`
-	Content string `json:"content,omitempty"`
-	Name    string `json:"name,omitempty"`
+	Role      string     `json:"role"`
+	Content   string     `json:"content,omitempty"`
+	Name      string     `json:"name,omitempty"`
+	ToolCalls []ToolCall `json:"tool_calls,omitempty"`
 }
 
 type TokenUsage struct {
@@ -66,6 +95,8 @@ type CreateChatCompletionRequest struct {
 	MaxTokens   uint32          `json:"max_tokens,omitempty"`
 	Stream      bool            `json:"stream,omitempty"`
 	User        string          `json:"user,omitempty"`
+	Tools       []Tool          `json:"tools,omitempty"`
+	ToolChoice  any             `json:"tool_choice,omitempty"`
 }
 
 type CreateChatCompletionResponse struct {
@@ -112,8 +143,23 @@ type GetGenerationResponse struct {
 
 // ChatCompletionChunkDelta represents the delta in a streaming chunk.
 type ChatCompletionChunkDelta struct {
-	Role    string `json:"role,omitempty"`
-	Content string `json:"content,omitempty"`
+	Role      string          `json:"role,omitempty"`
+	Content   string          `json:"content,omitempty"`
+	ToolCalls []ToolCallDelta `json:"tool_calls,omitempty"`
+}
+
+// ToolCallDelta represents incremental tool call data in a streaming chunk.
+type ToolCallDelta struct {
+	Index    uint32                `json:"index"`
+	ID       string                `json:"id,omitempty"`
+	Type     string                `json:"type,omitempty"`
+	Function *FunctionCallDelta    `json:"function,omitempty"`
+}
+
+// FunctionCallDelta represents incremental function call data.
+type FunctionCallDelta struct {
+	Name      string `json:"name,omitempty"`
+	Arguments string `json:"arguments,omitempty"`
 }
 
 // ChatCompletionChunkChoiceOut represents a choice in a streaming chunk.
@@ -143,8 +189,24 @@ func (r CreateChatCompletionRequest) toDomainMessages() ([]llm.ChatMessage, erro
 			return nil, errors.New("message.role is required")
 		}
 		msg := llm.ChatMessage{
-			Role: m.Role,
-			Name: m.Name,
+			Role:       m.Role,
+			Name:       m.Name,
+			ToolCallID: m.ToolCallID,
+		}
+
+		// Convert tool calls
+		if len(m.ToolCalls) > 0 {
+			msg.ToolCalls = make([]llm.ToolCall, 0, len(m.ToolCalls))
+			for _, tc := range m.ToolCalls {
+				msg.ToolCalls = append(msg.ToolCalls, llm.ToolCall{
+					ID:   tc.ID,
+					Type: tc.Type,
+					Function: llm.FunctionCall{
+						Name:      tc.Function.Name,
+						Arguments: tc.Function.Arguments,
+					},
+				})
+			}
 		}
 
 		// content can be either a string or an array of content parts.

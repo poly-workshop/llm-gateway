@@ -24,20 +24,49 @@ type ContentPart struct {
 	ImageURL *ImageURL `json:"image_url,omitempty"`
 }
 
+// FunctionCall represents a function call made by the assistant.
+type FunctionCall struct {
+	Name      string `json:"name"`
+	Arguments string `json:"arguments"`
+}
+
+// ToolCall represents a tool call made by the assistant.
+type ToolCall struct {
+	ID       string       `json:"id"`
+	Type     string       `json:"type"`
+	Function FunctionCall `json:"function"`
+}
+
+// ToolFunction defines a function that can be called.
+type ToolFunction struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Parameters  any    `json:"parameters,omitempty"`
+}
+
+// Tool represents a tool that can be used by the model.
+type Tool struct {
+	Type     string       `json:"type"`
+	Function ToolFunction `json:"function"`
+}
+
 // Message represents an OpenAI-compatible chat message.
 // It supports both simple text content and multimodal content.
 // Content field is used for text-only, ContentParts for multimodal.
 type Message struct {
-	Role    string `json:"role"`
-	Content any    `json:"content"` // string or []ContentPart
-	Name    string `json:"name,omitempty"`
+	Role       string `json:"role"`
+	Content    any    `json:"content"` // string or []ContentPart
+	Name       string `json:"name,omitempty"`
+	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
+	ToolCallID string `json:"tool_call_id,omitempty"`
 }
 
 // ResponseMessage represents a message in the response from the API.
 type ResponseMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-	Name    string `json:"name,omitempty"`
+	Role       string     `json:"role"`
+	Content    string     `json:"content"`
+	Name       string     `json:"name,omitempty"`
+	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
 }
 
 // Usage represents token usage information.
@@ -61,6 +90,8 @@ type ChatCompletionRequest struct {
 	Temperature float64   `json:"temperature,omitempty"`
 	MaxTokens   uint32    `json:"max_tokens,omitempty"`
 	User        string    `json:"user,omitempty"`
+	Tools       []Tool    `json:"tools,omitempty"`
+	ToolChoice  any       `json:"tool_choice,omitempty"`
 }
 
 // ChatCompletionResponse represents an OpenAI-compatible chat completion response.
@@ -74,8 +105,23 @@ type ChatCompletionResponse struct {
 
 // DeltaMessage represents an incremental message in a streaming chunk.
 type DeltaMessage struct {
-	Role    string `json:"role,omitempty"`
-	Content string `json:"content,omitempty"`
+	Role      string          `json:"role,omitempty"`
+	Content   string          `json:"content,omitempty"`
+	ToolCalls []ToolCallDelta `json:"tool_calls,omitempty"`
+}
+
+// ToolCallDelta represents incremental tool call data in a streaming chunk.
+type ToolCallDelta struct {
+	Index    uint32                `json:"index"`
+	ID       string                `json:"id,omitempty"`
+	Type     string                `json:"type,omitempty"`
+	Function *FunctionCallDelta    `json:"function,omitempty"`
+}
+
+// FunctionCallDelta represents incremental function call data.
+type FunctionCallDelta struct {
+	Name      string `json:"name,omitempty"`
+	Arguments string `json:"arguments,omitempty"`
 }
 
 // ChunkChoice represents a single choice in a streaming chunk.
@@ -116,7 +162,30 @@ func ConvertDomainMessages(domainMessages []llm.ChatMessage) []Message {
 			// Simple text message.
 			content = m.Content
 		}
-		msgs = append(msgs, Message{Role: m.Role, Content: content, Name: m.Name})
+		
+		// Convert tool calls
+		var toolCalls []ToolCall
+		if len(m.ToolCalls) > 0 {
+			toolCalls = make([]ToolCall, 0, len(m.ToolCalls))
+			for _, tc := range m.ToolCalls {
+				toolCalls = append(toolCalls, ToolCall{
+					ID:   tc.ID,
+					Type: tc.Type,
+					Function: FunctionCall{
+						Name:      tc.Function.Name,
+						Arguments: tc.Function.Arguments,
+					},
+				})
+			}
+		}
+		
+		msgs = append(msgs, Message{
+			Role:       m.Role,
+			Content:    content,
+			Name:       m.Name,
+			ToolCalls:  toolCalls,
+			ToolCallID: m.ToolCallID,
+		})
 	}
 	return msgs
 }
@@ -164,12 +233,33 @@ func (s *sseStream) Recv() (llm.ChatCompletionChunk, error) {
 
 		choices := make([]llm.ChatCompletionChunkChoice, 0, len(chunk.Choices))
 		for _, c := range chunk.Choices {
+			delta := llm.ChatMessageDelta{
+				Role:    c.Delta.Role,
+				Content: c.Delta.Content,
+			}
+			
+			// Convert tool call deltas
+			if len(c.Delta.ToolCalls) > 0 {
+				delta.ToolCalls = make([]llm.ToolCallDelta, 0, len(c.Delta.ToolCalls))
+				for _, tc := range c.Delta.ToolCalls {
+					toolCallDelta := llm.ToolCallDelta{
+						Index: tc.Index,
+						ID:    tc.ID,
+						Type:  tc.Type,
+					}
+					if tc.Function != nil {
+						toolCallDelta.Function = &llm.FunctionCallDelta{
+							Name:      tc.Function.Name,
+							Arguments: tc.Function.Arguments,
+						}
+					}
+					delta.ToolCalls = append(delta.ToolCalls, toolCallDelta)
+				}
+			}
+			
 			choices = append(choices, llm.ChatCompletionChunkChoice{
-				Index: c.Index,
-				Delta: llm.ChatMessageDelta{
-					Role:    c.Delta.Role,
-					Content: c.Delta.Content,
-				},
+				Index:        c.Index,
+				Delta:        delta,
 				FinishReason: c.FinishReason,
 			})
 		}
