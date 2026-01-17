@@ -127,8 +127,12 @@ func (s *Service) CreateEmbeddings(ctx context.Context, req llm.EmbeddingsReques
 	req.Model = upstreamModel
 	resp, err := p.CreateEmbeddings(ctx, req)
 	if err != nil {
-		// Publish error event
-		event := s.buildUsageEvent(ctx, startTime, resp.ID, routedModel, llm.TokenUsage{}, "error", "provider_error", err.Error())
+		// Publish error event (use resp.ID if available, otherwise empty)
+		requestID := ""
+		if resp.ID != "" {
+			requestID = resp.ID
+		}
+		event := s.buildUsageEvent(ctx, startTime, requestID, routedModel, llm.TokenUsage{}, "error", "provider_error", err.Error())
 		s.publishUsageEvent(ctx, event)
 		return llm.EmbeddingsResponse{}, err
 	}
@@ -185,8 +189,12 @@ func (s *Service) CreateChatCompletion(ctx context.Context, req llm.ChatCompleti
 	req.Model = upstreamModel
 	resp, err := p.CreateChatCompletion(ctx, req)
 	if err != nil {
-		// Publish error event
-		event := s.buildUsageEvent(ctx, startTime, resp.ID, routedModel, llm.TokenUsage{}, "error", "provider_error", err.Error())
+		// Publish error event (use resp.ID if available, otherwise empty)
+		requestID := ""
+		if resp.ID != "" {
+			requestID = resp.ID
+		}
+		event := s.buildUsageEvent(ctx, startTime, requestID, routedModel, llm.TokenUsage{}, "error", "provider_error", err.Error())
 		s.publishUsageEvent(ctx, event)
 		return llm.ChatCompletionResponse{}, err
 	}
@@ -392,8 +400,8 @@ func (t *trackingStream) saveGeneration() {
 		_ = t.generations.Save(t.ctx, gen)
 	}
 
-	// Publish usage event
-	if t.service != nil && t.usageSink != nil {
+	// Publish usage event (check Usage again to be safe)
+	if t.service != nil && t.usageSink != nil && t.lastChunk.Usage != nil {
 		event := t.service.buildUsageEvent(
 			t.ctx,
 			t.startTime,
@@ -419,6 +427,7 @@ func (s *Service) publishUsageEvent(ctx context.Context, event llm.UsageEvent) {
 }
 
 // buildUsageEvent creates a usage event from request context and response metadata.
+// timestamp is set to the current time (request completion time).
 func (s *Service) buildUsageEvent(
 	ctx context.Context,
 	startTime time.Time,
@@ -433,7 +442,7 @@ func (s *Service) buildUsageEvent(
 	latencyMs := time.Since(startTime).Milliseconds()
 
 	return llm.UsageEvent{
-		Timestamp:    time.Now().UTC(),
+		Timestamp:    time.Now().UTC(), // Event creation time (request completion)
 		RequestID:    requestID,
 		Subject:      auth.SubjectFromContext(ctx),
 		JTI:          auth.JTIFromContext(ctx),

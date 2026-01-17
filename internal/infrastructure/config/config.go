@@ -74,6 +74,13 @@ func LoadHTTP() (HTTPAppConfig, error) {
 		cfg.HTTP.CORS.MaxAge = 10 * time.Minute
 	}
 
+	// Validate usage sink config
+	if cfg.UsageSink.Enabled && cfg.UsageSink.Backend != "" {
+		if cfg.UsageSink.Backend != "redis_stream" {
+			return cfg, fmt.Errorf("invalid usage_sink.backend: %q (supported: redis_stream)", cfg.UsageSink.Backend)
+		}
+	}
+
 	return cfg, nil
 }
 

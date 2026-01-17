@@ -57,7 +57,8 @@ func NewRedisStreamSink(cfg RedisStreamConfig) (*RedisStreamSink, error) {
 		DB:       cfg.DB,
 	})
 
-	// Test connection
+	// Test connection - fail fast if Redis is configured but unavailable
+	// This ensures we catch configuration errors at startup rather than runtime
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Timeout)
 	defer cancel()
 	if err := client.Ping(ctx).Err(); err != nil {

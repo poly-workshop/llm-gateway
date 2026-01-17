@@ -30,7 +30,7 @@ func TestRedisStreamSink_Publish(t *testing.T) {
 	// Clean up test stream before and after test
 	streamKey := "test:llmgw:usage:v1"
 	defer client.Del(context.Background(), streamKey)
-	client.Del(ctx, streamKey)
+	client.Del(context.Background(), streamKey)
 
 	// Create sink
 	sink, err := NewRedisStreamSink(RedisStreamConfig{
