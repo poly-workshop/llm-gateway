@@ -189,7 +189,6 @@ type UsageSinkConfig struct {
 	RedisStream struct {
 		Addr       string        `mapstructure:"addr"`
 		Password   string        `mapstructure:"password"`
-		DB         int           `mapstructure:"db"`
 		StreamKey  string        `mapstructure:"stream_key"`
 		MaxLen     int64         `mapstructure:"max_len"`
 		Timeout    time.Duration `mapstructure:"timeout"`

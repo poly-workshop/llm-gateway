@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/poly-workshop/go-webmods/redisclient"
 	"github.com/poly-workshop/llm-gateway/internal/domain/llm"
 	"github.com/redis/go-redis/v9"
 )
@@ -14,7 +15,7 @@ import (
 // RedisStreamSink publishes usage events to a Redis Stream with best-effort semantics.
 // If Redis is unavailable or append fails, the sink logs an error but does not block.
 type RedisStreamSink struct {
-	client     *redis.Client
+	client     redis.UniversalClient
 	streamKey  string
 	maxLen     int64
 	timeout    time.Duration
@@ -27,8 +28,6 @@ type RedisStreamConfig struct {
 	Addr string
 	// Password is the Redis auth password (optional).
 	Password string
-	// DB is the Redis database number (default: 0).
-	DB int
 	// StreamKey is the Redis Stream key name (e.g., "llmgw:usage:v1").
 	StreamKey string
 	// MaxLen is the maximum stream length (0 = unlimited). Uses MAXLEN to trim old entries.
@@ -51,10 +50,10 @@ func NewRedisStreamSink(cfg RedisStreamConfig) (*RedisStreamSink, error) {
 		cfg.Timeout = 500 * time.Millisecond
 	}
 
-	client := redis.NewClient(&redis.Options{
-		Addr:     cfg.Addr,
+	// Use go-webmods redisclient to create Redis client
+	client := redisclient.NewRDB(redisclient.Config{
+		Urls:     []string{cfg.Addr},
 		Password: cfg.Password,
-		DB:       cfg.DB,
 	})
 
 	// Test connection - fail fast if Redis is configured but unavailable

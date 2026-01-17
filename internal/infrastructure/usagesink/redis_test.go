@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/poly-workshop/go-webmods/redisclient"
 	"github.com/poly-workshop/llm-gateway/internal/domain/llm"
 	"github.com/redis/go-redis/v9"
 )
@@ -13,9 +14,8 @@ import (
 func TestRedisStreamSink_Publish(t *testing.T) {
 	// This test requires a local Redis instance running on localhost:6379
 	// Skip if Redis is not available
-	client := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-		DB:   15, // Use a separate DB for testing
+	client := redisclient.NewRDB(redisclient.Config{
+		Urls: []string{"localhost:6379"},
 	})
 	defer client.Close()
 
@@ -36,7 +36,6 @@ func TestRedisStreamSink_Publish(t *testing.T) {
 	sink, err := NewRedisStreamSink(RedisStreamConfig{
 		Addr:       "localhost:6379",
 		Password:   "",
-		DB:         15,
 		StreamKey:  streamKey,
 		MaxLen:     100,
 		Timeout:    500 * time.Millisecond,
@@ -147,7 +146,7 @@ func TestRedisStreamSink_Config(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Skip tests that require Redis connection if Redis is not available
 			if !tt.skipPing && !tt.wantErr {
-				client := redis.NewClient(&redis.Options{Addr: "localhost:6379"})
+				client := redisclient.NewRDB(redisclient.Config{Urls: []string{"localhost:6379"}})
 				defer client.Close()
 				ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 				defer cancel()

@@ -44,7 +44,6 @@ func main() {
 			sink, err := usagesink.NewRedisStreamSink(usagesink.RedisStreamConfig{
 				Addr:       cfg.UsageSink.RedisStream.Addr,
 				Password:   cfg.UsageSink.RedisStream.Password,
-				DB:         cfg.UsageSink.RedisStream.DB,
 				StreamKey:  cfg.UsageSink.RedisStream.StreamKey,
 				MaxLen:     cfg.UsageSink.RedisStream.MaxLen,
 				Timeout:    cfg.UsageSink.RedisStream.Timeout,
