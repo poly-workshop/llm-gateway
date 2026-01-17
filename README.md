@@ -1,7 +1,5 @@
 # LLM Gateway
 
-An OpenRouter-like LLM Gateway exposed via **HTTP (gRPC-Gateway HandlerServer)**, with **buf** managing protobuf modules and code generation.
-
 Project implementation notes and AI/Agent summaries are maintained in `Agent.md`.
 
 ## Project Positioning
@@ -38,7 +36,7 @@ These capabilities belong to higher-level platform layers that consume LLM Gatew
 ### Comparison to Similar Projects
 
 | Project | Focus | Key Difference |
-|---------|-------|----------------|
+| --------- | ------- | ---------------- |
 | **LiteLLM** | Python-based unified LLM API with extensive provider support and proxy features | LLM Gateway is Go-based, emphasizes clean architecture and gRPC-first design, lighter weight |
 | **Portkey** | Full-featured AI gateway with observability, caching, and guardrails | LLM Gateway focuses on core protocol adaptation and routing, leaving advanced features to L2/L3 layers |
 | **OpenRouter** | Hosted multi-provider LLM service | LLM Gateway is self-hosted, providing OpenRouter-like routing with full infrastructure control |
@@ -150,6 +148,7 @@ grpcurl -plaintext -d '{
 When a request is made to `/v1/chat/completions`:
 
 1. **If `max_tokens` exceeds the model's limit**: The request is rejected with an OpenAI-compatible `invalid_request_error`:
+
    ```json
    {
      "error": {
@@ -256,5 +255,3 @@ redis-cli XREADGROUP GROUP billing-service consumer1 COUNT 10 STREAMS llmgw:usag
 - **Retention**: Use `max_len` to limit stream size. Old events are automatically trimmed when the stream exceeds this length.
 - **Performance**: `approx_trim = true` uses `MAXLEN ~` for better performance with minimal precision loss.
 - **No Guarantees**: This is a best-effort sink. For critical billing, implement idempotent downstream consumers with retries.
-
-
