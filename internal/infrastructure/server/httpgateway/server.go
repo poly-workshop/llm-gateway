@@ -272,13 +272,13 @@ func (s *Server) handleCreateChatCompletion(w http.ResponseWriter, r *http.Reque
 		writeJSONError(w, http.StatusBadRequest, "invalid json")
 		return
 	}
-	
+
 	// Check if streaming is requested
 	if req.Stream {
 		s.handleStreamChatCompletion(w, r, req)
 		return
 	}
-	
+
 	if ids := auth.AllowedModelsFromContext(r.Context()); len(ids) > 0 {
 		allowed := make(map[string]struct{}, len(ids))
 		for _, mid := range ids {
@@ -416,11 +416,12 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 
 func writeJSONError(w http.ResponseWriter, status int, msg string) {
 	errorType := "internal_error"
-	if status == http.StatusBadRequest {
+	switch status {
+	case http.StatusBadRequest:
 		errorType = "invalid_request_error"
-	} else if status == http.StatusUnauthorized {
+	case http.StatusUnauthorized:
 		errorType = "authentication_error"
-	} else if status == http.StatusForbidden {
+	case http.StatusForbidden:
 		errorType = "permission_error"
 	}
 	writeJSON(w, status, map[string]any{
