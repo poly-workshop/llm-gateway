@@ -486,4 +486,3 @@ func TestCreateChatCompletion_PublishesUsageEvent(t *testing.T) {
 	}
 }
 
-
