@@ -321,3 +321,169 @@ func TestStreamChatCompletion_NoUsageInChunks(t *testing.T) {
 		t.Errorf("Expected no usage event when no usage data, but got %d events", len(sink.events))
 	}
 }
+
+// TestStreamChatCompletion_CloseWithoutReadingAll verifies that closing the stream
+// early still publishes usage event if we've received a chunk with usage.
+func TestStreamChatCompletion_CloseWithoutReadingAll(t *testing.T) {
+	// Setup: Create a provider with multiple chunks
+	provider := &mockProvider{
+		streamChatCompletionFunc: func(req llm.ChatCompletionRequest) (llm.ChatCompletionStream, error) {
+			return &mockStream{
+				chunks: []llm.ChatCompletionChunk{
+					{
+						ID:      "chatcmpl-early-close",
+						Object:  "chat.completion.chunk",
+						Created: 1234567890,
+						Model:   req.Model,
+						Choices: []llm.ChatCompletionChunkChoice{
+							{
+								Index: 0,
+								Delta: llm.ChatMessageDelta{
+									Role:    "assistant",
+									Content: "First chunk",
+								},
+							},
+						},
+					},
+					{
+						ID:      "chatcmpl-early-close",
+						Object:  "chat.completion.chunk",
+						Created: 1234567890,
+						Model:   req.Model,
+						Choices: []llm.ChatCompletionChunkChoice{
+							{
+								Index: 0,
+								Delta: llm.ChatMessageDelta{
+									Content: "Second chunk with usage",
+								},
+								FinishReason: "stop",
+							},
+						},
+						Usage: &llm.TokenUsage{
+							PromptTokens:     5,
+							CompletionTokens: 10,
+							TotalTokens:      15,
+						},
+					},
+					{
+						ID:      "chatcmpl-early-close",
+						Object:  "chat.completion.chunk",
+						Created: 1234567890,
+						Model:   req.Model,
+						Choices: []llm.ChatCompletionChunkChoice{
+							{
+								Index: 0,
+								Delta: llm.ChatMessageDelta{
+									Content: "Third chunk (never read)",
+								},
+							},
+						},
+					},
+				},
+			}, nil
+		},
+	}
+	providers := map[string]Provider{
+		"test": provider,
+	}
+	models := []ModelSpec{
+		{
+			ID:           "test/model",
+			Name:         "model",
+			Provider:     "test",
+			Capabilities: []string{"text"},
+		},
+	}
+	sink := &mockUsageSink{}
+	appSvc := NewService(providers, models, nil, sink)
+
+	// Test: Stream chat completion but close early
+	ctx := context.Background()
+	stream, err := appSvc.StreamChatCompletion(ctx, llm.ChatCompletionRequest{
+		Model:    "test/model",
+		Messages: []llm.ChatMessage{{Role: "user", Content: "Hello"}},
+	})
+	if err != nil {
+		t.Fatalf("StreamChatCompletion failed: %v", err)
+	}
+
+	// Read only first two chunks
+	for i := 0; i < 2; i++ {
+		_, err := stream.Recv()
+		if err != nil {
+			t.Fatalf("Recv chunk %d failed: %v", i, err)
+		}
+	}
+
+	// Close without reading the third chunk
+	if err := stream.Close(); err != nil {
+		t.Fatalf("Close failed: %v", err)
+	}
+
+	// Assert: Usage event should be published (we read the chunk with usage)
+	if len(sink.events) != 1 {
+		t.Errorf("Expected 1 usage event, but got %d events", len(sink.events))
+	}
+
+	if len(sink.events) > 0 {
+		event := sink.events[0]
+		if event.UsageTokens.TotalTokens != 15 {
+			t.Errorf("Expected total tokens 15, got %d", event.UsageTokens.TotalTokens)
+		}
+	}
+}
+
+// TestCreateChatCompletion_PublishesUsageEvent verifies that non-streaming
+// chat completion also publishes usage events (for comparison with streaming).
+func TestCreateChatCompletion_PublishesUsageEvent(t *testing.T) {
+	// Setup: Create a service with a mock provider and usage sink
+	provider := &mockProvider{}
+	providers := map[string]Provider{
+		"test": provider,
+	}
+	models := []ModelSpec{
+		{
+			ID:           "test/model",
+			Name:         "model",
+			Provider:     "test",
+			Capabilities: []string{"text"},
+		},
+	}
+	sink := &mockUsageSink{}
+	appSvc := NewService(providers, models, nil, sink)
+
+	// Test: Non-streaming chat completion
+	ctx := context.Background()
+	_, err := appSvc.CreateChatCompletion(ctx, llm.ChatCompletionRequest{
+		Model:    "test/model",
+		Messages: []llm.ChatMessage{{Role: "user", Content: "Hello"}},
+	})
+	if err != nil {
+		t.Fatalf("CreateChatCompletion failed: %v", err)
+	}
+
+	// Assert: Usage event should be published
+	if len(sink.events) != 1 {
+		t.Fatalf("Expected 1 usage event, but got %d events", len(sink.events))
+	}
+
+	// Verify the event
+	event := sink.events[0]
+	if event.Status != "success" {
+		t.Errorf("Expected status 'success', got '%s'", event.Status)
+	}
+	if event.Model != "test/model" {
+		t.Errorf("Expected model 'test/model', got '%s'", event.Model)
+	}
+	if event.Provider != "test" {
+		t.Errorf("Expected provider 'test', got '%s'", event.Provider)
+	}
+	if event.RequestID != "chatcmpl-test" {
+		t.Errorf("Expected request ID 'chatcmpl-test', got '%s'", event.RequestID)
+	}
+	if event.UsageTokens.TotalTokens != 30 {
+		t.Errorf("Expected total tokens 30, got %d", event.UsageTokens.TotalTokens)
+	}
+}
+
+
