@@ -485,4 +485,3 @@ func TestCreateChatCompletion_PublishesUsageEvent(t *testing.T) {
 		t.Errorf("Expected total tokens 30, got %d", event.UsageTokens.TotalTokens)
 	}
 }
-
