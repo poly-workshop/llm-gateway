@@ -330,6 +330,7 @@ type trackingStream struct {
 	service      *Service // Reference to service for helper methods
 	lastChunk    *llm.ChatCompletionChunk
 	streamClosed bool
+	usageSaved   bool // Track whether usage event has been published
 }
 
 func newTrackingStream(
@@ -387,6 +388,12 @@ func (t *trackingStream) saveGeneration() {
 	if t.lastChunk == nil || t.lastChunk.Usage == nil {
 		return
 	}
+
+	// Prevent duplicate saves/publishes
+	if t.usageSaved {
+		return
+	}
+	t.usageSaved = true
 
 	gen := llm.Generation{
 		ID:      t.lastChunk.ID,
